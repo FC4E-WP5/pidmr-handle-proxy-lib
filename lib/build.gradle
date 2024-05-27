@@ -1,0 +1,61 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'net.handle'
+version = '0.0.1-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://handle.net/maven' }
+}
+
+ext {
+    handleVersion = '9.3.1'
+    servletApiVersion = '3.1.0'
+    javaVersion = 8
+}
+
+dependencies {
+    implementation "$group:handle:$handleVersion"
+    implementation "javax.servlet:javax.servlet-api:$servletApiVersion"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
+}
+
+tasks.named('test', Test) {
+    // Use JUnit Platform for unit tests.
+    useJUnitPlatform()
+}
+
+tasks.jar {
+    manifest {
+        attributes(
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.version
+        )
+    }
+    archiveBaseName.set("PIDMRHDLProxy")
+    archiveVersion.set("$version")
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+   // options.release.set(javaVersion)
+}
+
+tasks.withType(Test).configureEach {
+    testLogging {
+        events 'PASSED', 'FAILED', 'SKIPPED'
+    }
+}
+
+gradle.settingsEvaluated {
+    // Enable Gradle configuration cache for faster builds
+    startParameter.enableConfigurationCache = true
+}
+
