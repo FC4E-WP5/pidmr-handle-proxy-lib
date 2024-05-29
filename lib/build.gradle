@@ -28,7 +28,6 @@ java {
 }
 
 tasks.named('test', Test) {
-    // Use JUnit Platform for unit tests.
     useJUnitPlatform()
 }
 
@@ -45,7 +44,6 @@ tasks.jar {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-   // options.release.set(javaVersion)
 }
 
 tasks.withType(Test).configureEach {
@@ -55,7 +53,6 @@ tasks.withType(Test).configureEach {
 }
 
 gradle.settingsEvaluated {
-    // Enable Gradle configuration cache for faster builds
     startParameter.enableConfigurationCache = true
 }
 
