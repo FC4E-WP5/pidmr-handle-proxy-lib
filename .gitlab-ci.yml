@@ -1,12 +1,24 @@
-# You can override the included template(s) by including variable overrides
-# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
-# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/pipeline/#customization
-# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
-# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
-# Note that environment variables can be set in several places
-# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
+image: maven:3-openjdk-8
+
 stages:
+- deploy
 - test
+
+default:
+  before_script:
+    - 'which ssh-agent || ( apk add --update openssh-client )'
+    - mkdir -p ~/.ssh
+    - eval $(ssh-agent -s)
+    - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+
+deploy:
+  stage: deploy
+  script:
+    - ./gradlew build
+    - scp build/libs/PIDMRHDLProxy-0.0.1-SNAPSHOT.jar $SSH_LOGIN:/home/cloud
+    - ssh $SSH_LOGIN "$PIDMR_PROXY_RESTART_SCRIPT"
+
 sast:
   stage: test
 include:
