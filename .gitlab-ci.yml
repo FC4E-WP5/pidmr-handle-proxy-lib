@@ -16,7 +16,7 @@ deploy:
   stage: deploy
   script:
     - ./gradlew build
-    - scp build/libs/PIDMRHDLProxy-0.0.1-SNAPSHOT.jar $SSH_LOGIN:/home/cloud
+    - scp lib/build/libs/PIDMRHDLProxy-0.0.1-SNAPSHOT.jar $SSH_LOGIN:/home/cloud
     - ssh $SSH_LOGIN "$PIDMR_PROXY_RESTART_SCRIPT"
 
 sast:
