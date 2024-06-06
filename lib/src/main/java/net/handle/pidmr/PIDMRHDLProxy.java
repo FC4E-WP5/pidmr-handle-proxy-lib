@@ -9,29 +9,35 @@
 
 package net.handle.pidmr;
 
-import net.handle.apps.servlet_proxy.HDLServletRequest.ResponseType;
-import net.handle.apps.servlet_proxy.HDLServletRequest;
-import net.handle.apps.servlet_proxy.HDLProxy;
-import net.handle.hdllib.*;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.*;
-import java.io.*;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-
-import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import net.cnri.util.StreamTable;
+import net.handle.apps.servlet_proxy.HDLProxy;
+import net.handle.apps.servlet_proxy.HDLServletRequest;
+import net.handle.apps.servlet_proxy.HDLServletRequest.ResponseType;
+import net.handle.hdllib.*;
+import net.handle.pidmr.ConfigLoader;
+import net.handle.server.Main;
+import net.handle.server.servletcontainer.HandleServerInterface;
 
 public class PIDMRHDLProxy extends HDLProxy {
     public static RequestProcessor resolver = null;
@@ -49,9 +55,83 @@ public class PIDMRHDLProxy extends HDLProxy {
     private final String CN_CITATION = "citation";
     private String pidType = null;
     private String recognizedPid = null;
-    private final String CROSSREF_METADATA_ENDPOINT = "https://api.crossref.org/works/";
-    private final String DATACITE_METADATA_ENDPOINT = "https://api.datacite.org/dois/";
-    private final String DOI_LANDINGPAGE_ENDPOINT = "https://dx.doi.org/";
+//    private static final String Zenodo_LANDINGPAGE_ENDPOINT = "https://zenodo.org/record/";
+//    private static final String Zenodo_METADATA_ENDPOINT = "https://zenodo.org/api/records/";
+//    private static final String Zenodo_RESOURCE_ENDPOINT = "https://zenodo.org/api/records/";
+
+    protected HandleServerInterface handleServer;
+
+    private ConfigLoader.Config config;
+
+    public enum PidType {
+        TYPE_21,
+        EPIC_OLD,
+        ARXIV,
+        ARK,
+        URN_NBN_DE,
+        URN_NBN_FI,
+        DOI,
+        SWH,
+        ZENODO,
+        ORCID,
+        ZBMATH,
+        SWMATH,
+        ZBL,
+        ROR,
+        ISLRN,
+        UNKNOWN;
+
+        public static PidType fromString(String type) {
+            switch (type) {
+                case "21":
+                case "epic_old":
+                    return TYPE_21;
+                case "arXiv":
+                    return ARXIV;
+                case "ark":
+                    return ARK;
+                case "urn:nbn:de":
+                    return URN_NBN_DE;
+                case "urn:nbn:fi":
+                    return URN_NBN_FI;
+                case "doi":
+                    return DOI;
+                case "swh":
+                    return SWH;
+                case "10.5281/zenodo":
+                    return ZENODO;
+                case "orcid":
+                    return ORCID;
+                case "zbMATH":
+                    return ZBMATH;
+                case "swMATH":
+                    return SWMATH;
+                case "Zbl":
+                    return ZBL;
+                case "ROR":
+                    return ROR;
+                case "ISLRN":
+                    return ISLRN;
+                default:
+                    return UNKNOWN;
+            }
+        }
+    }
+
+    private static final String DOI_PREFIX = "doi:";
+    private static final String CROSSREF = "crossref";
+    private static final String DATACITE = "datacite";
+
+    @Override
+    public void init() throws ServletException {
+        super.init();
+        ConfigLoader configLoader = new ConfigLoader("config.json");
+        try {
+            config = configLoader.loadConfig();
+        } catch (IOException e) {
+            throw new ServletException("Failed to load configuration", e);
+        }
+    }
 
     // @Override
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
@@ -66,7 +146,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                     pid = req.getQueryString();
                 }
                 if (display == null) {
-                    display = RESOLVING_MODE_LANDINGPAGE;
+                    display = config.getResolvingModes().get("RESOLVING_MODE_LANDINGPAGE");
                 }
                 if (pid != null) {
                     pidType = checkPidType(pid);
@@ -97,7 +177,7 @@ public class PIDMRHDLProxy extends HDLProxy {
             if (!pidType.equals("21") && !pidType.equals("epic_old")) {
                 display = hdl.params.getParameter("display");
                 if (display == null) {
-                    display = RESOLVING_MODE_LANDINGPAGE;
+                    display = config.getResolvingModes().get("RESOLVING_MODE_LANDINGPAGE");
                 }
                 pid = hdl.hdl;
                 try {
@@ -119,64 +199,59 @@ public class PIDMRHDLProxy extends HDLProxy {
     }
 
     private void dispatchPidHandlingMode(String pid, String display, HDLServletRequest hdl, String pidType, HttpServletResponse resp) throws IOException, ServletException, HandleException {
-        switch (pidType) {
-            case "21":
-            case "epic_old":
-                handle21(pid, display, hdl);
+        PidType type = PidType.fromString(pidType);
+        switch (type) {
+            case TYPE_21:
+                handle21(pidType, pid, display, hdl, resp);
                 break;
-            case "arXiv":
-                handleArxiv(pid, display, hdl);
+            case ARXIV:
+                handleArxiv(pidType, pid, display, hdl, resp);
                 break;
-            case "ark":
-                handleArk(pid, display, hdl);
+            case ARK:
+                handleArk(pidType, pid, display, hdl, resp);
                 break;
-            case "urn:nbn:de":
-                handleUrnDe(pid, display, hdl);
+            case URN_NBN_DE:
+                handleUrnDe(pidType, pid, display, hdl, resp);
                 break;
-            case "urn:nbn:fi":
-                handleUrnFi(pid, display, hdl);
+            case URN_NBN_FI:
+                handleUrnFi(pidType, pid, display, hdl, resp);
                 break;
-            case "doi":
-                handleDoi(pid, display, hdl, resp);
+            case DOI:
+                handleDoi(pidType, pid, display, hdl, resp);
                 break;
-            case "swh":
+            case SWH:
                 String[] swhPidParts = pid.split(":");
                 String swhType = swhPidParts[2];
                 String swhHash = swhPidParts[3];
                 if (display.equals(RESOLVING_MODE_RESOURCE)) {
-                    handleSwh(swhHash, display, hdl);
+                    handleSwh(pidType, swhHash, display, hdl, resp);
                 } else {
-                    handleSwh(pid, display, hdl);
+                    handleSwh(pidType, pid, display, hdl, resp);
                 }
                 break;
-            case "10.5281/zenodo":
-                handleZenodo(pid, display, hdl, resp);
+            case ZENODO:
+                handleZenodo(pidType, pid, display, hdl, resp);
                 break;
-            case "orcid":
-                handleOrcid(pid, display, hdl);
+            case ORCID:
+                handleOrcid(pidType, pid, display, hdl, resp);
                 break;
-            case "zbMATH":
-                handleZbmath(pid, display, hdl);
+            case ZBMATH:
+                handleZbmath(pidType, pid, display, hdl, resp);
                 break;
-            case "swMATH":
-                handleSwmath(pid, display, hdl);
+            case SWMATH:
+                handleSwmath(pidType, pid, display, hdl, resp);
                 break;
-            case "Zbl":
-                handleZbl(pid, display, hdl);
+            case ZBL:
+                handleZbl(pidType, pid, display, hdl, resp);
                 break;
-            case "ROR":
-                handleRor(pid, display, hdl);
+            case ROR:
+                handleRor(pidType, pid, display, hdl, resp);
                 break;
-            case "ISLRN":
-                handleISLRN(pid, display, hdl);
+            case ISLRN:
+                handleISLRN(pidType, pid, display, hdl, resp);
                 break;
             default:
-                try {
-                    noPidType(resp);
-                    return;
-                } catch (IOException e) {
-                    // Handle the exception here, e.g., log an error message or take corrective action.
-                }
+                noPidType(resp);
                 break;
         }
     }
@@ -188,15 +263,15 @@ public class PIDMRHDLProxy extends HDLProxy {
     }
 
     private String checkPidType(String pid) throws IOException {
-        // This assumes that the handle proxy server redides in /home/providers directory
-        String providersFilePath = "/home/providers/providers.json";
-        String providersBackupFilePath = "/home/providers/providers_backup.json";
-        File providersFile = new File(providersFilePath);
-        File providersBackupFile = new File(providersBackupFilePath);
+        File providersFile = new File(config.getProvidersFilePath());
+        File providersBackupFile = new File(config.getProvidersBackupFilePath());
+        String providersFilePath;
         recognizedPid = null;
         if (providersFile.exists() || providersBackupFile.exists()) {
-            if (!providersFile.exists()) {
-                providersFilePath = providersBackupFilePath;
+            if (providersFile.exists()) {
+                providersFilePath = config.getProvidersFilePath();
+            } else {
+                providersFilePath = config.getProvidersBackupFilePath();
             }
             try {
                 JsonObject jsonContent = readJsonFile(providersFilePath);
@@ -243,216 +318,238 @@ public class PIDMRHDLProxy extends HDLProxy {
         return matchFound = matcher.find();
     }
 
-    private void handleSwh(String pid, String display, HDLServletRequest hdl) {
-        // Handle SWH URLs
-        String redirectUrl = null;
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = "https://archive.softwareheritage.org/" + pid;
-                break;
-            case RESOLVING_MODE_METADATA:
-                String id = pid.split(":")[1];
-                redirectUrl = "https://archive.softwareheritage.org/api/1/resolve/" + pid + "?format=json";
-                break;
-            case RESOLVING_MODE_RESOURCE:
-                redirectUrl = "https://archive.softwareheritage.org/browse/content/sha1_git:" + pid + "/raw/";
-                break;
-        }
-        if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
-        }
-    }
-    private void handle21(String pid, String display, HDLServletRequest hdl) {
-        // Handle 21 URLs
-        String redirectUrl = null;
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = "https://hdl.handle.net/" + pid;
-                break;
-            case RESOLVING_MODE_METADATA:
-                redirectUrl = "https://hdl.handle.net/" + pid + "?noredirect";
-                break;
-        }
-        if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
-        }
-    }
-    private void handleArxiv(String pid, String display, HDLServletRequest hdl) {
-        // Handle Arxiv URLs
-        String redirectUrl = null;
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = "https://arxiv.org/abs/" + pid.substring(6);
-                break;
-            case RESOLVING_MODE_METADATA:
-                String id = pid.split(":")[1];
-                redirectUrl = "http://export.arxiv.org/oai2?verb=GetRecord&metadataPrefix=oai_dc&identifier=oai:arXiv:org:" + id;
-                break;
-            case RESOLVING_MODE_RESOURCE:
-                redirectUrl = "https://arxiv.org/pdf/" + pid + ".pdf";
-                break;
-        }
-        if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
-        }
-    }
-
-    private void handleUrnDe(String pid, String display, HDLServletRequest hdl) {
-        // Handle URN DE URLs
-        String redirectUrl = null;
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = "https://nbn-resolving.org/redirect/" + pid;
-                break;
-            case RESOLVING_MODE_METADATA:
-                redirectUrl = "https://nbn-resolving.org/json/" + pid;
-                break;
-            case RESOLVING_MODE_RESOURCE:
-                String urnMetadataURL = "https://nbn-resolving.org/json/" + pid;
-                try {
-                    URL apiUrl = new URL(urnMetadataURL);
-                    HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
-                    connection.setRequestMethod("GET");
-                    int responseCode = connection.getResponseCode();
-                    if (responseCode == 200) {
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                        String inputLine;
-                        StringBuilder content = new StringBuilder();
-                        while ((inputLine = reader.readLine()) != null) {
-                            content.append(inputLine);
-                        }
-                        reader.close();
-                        connection.disconnect();
-                        String jsonContent = content.toString();
-                        JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
-                        JsonElement nbnUrl = jsonObject.get("data").getAsJsonObject().get("resolving_information").getAsJsonObject().get("url_info").getAsJsonObject().get("url");
-                        redirectUrl = nbnUrl.toString().replace("\"", "");
-                    } else {
-                        // Handle the exception here, e.g., log an error message or take corrective action.
-                        // Error ("Failed to fetch data. HTTP response code: " + responseCode);
-                    }
-                } catch (Exception e) {
-                    // Handle the exception here, e.g., log an error message or take corrective action.
+    private String fetchUrnDeResourceUrl(String pid, String metadataEndpoint) {
+        String urnMetadataURL = metadataEndpoint + pid;
+        try {
+            URL apiUrl = new URL(urnMetadataURL);
+            HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
+            connection.setRequestMethod("GET");
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                String inputLine;
+                StringBuilder content = new StringBuilder();
+                while ((inputLine = reader.readLine()) != null) {
+                    content.append(inputLine);
                 }
-                break;
+                reader.close();
+                connection.disconnect();
+                String jsonContent = content.toString();
+                JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
+                JsonElement nbnUrl = jsonObject.get("data").getAsJsonObject().get("resolving_information").getAsJsonObject().get("url_info").getAsJsonObject().get("url");
+                String redirectUrl = nbnUrl.toString().replace("\"", "");
+                return redirectUrl;
+            }
+        } catch (Exception e) {
+            // Log error or handle exception
         }
-        if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
+        return null;
+    }
+
+    private void redirect(String pidType, String pid, String display, String redirectUrl, HDLServletRequest hdl, HttpServletResponse resp) {
+        try {
+            URL apiUrl = new URL(redirectUrl);
+            HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200) {
+                hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
+            } else if (responseCode == 301 || responseCode == 302 || responseCode == 307) {
+                String newUrl = connection.getHeaderField("Location");
+                URL url = new URL(newUrl);
+                connection = (HttpURLConnection) url.openConnection();
+                responseCode = connection.getResponseCode();
+                hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, newUrl);
+            } else {
+                handleHttpError(responseCode, resp);
+            }
+
+            String addr = "";
+            try {
+                addr = hdl.getRemoteAddr();
+            } catch (Throwable t) {
+            }
+            logPIDMRAccess(pidType, pid, display, responseCode, addr);
+        } catch (IOException e) {
+            // Log error or handle exception
+        }
+    }
+    private void handleHttpError(int responseCode, HttpServletResponse resp) throws IOException {
+        resp.setCharacterEncoding("UTF-8");
+        resp.setContentType("application/json");
+
+        switch (responseCode) {
+            case 400:
+                resp.getWriter().println("{\"400\": \"Bad Request\"}");
+                break;
+            case 401:
+                resp.getWriter().println("{\"401\": \"Unauthorized\"}");
+                break;
+            case 402:
+                resp.getWriter().println("{\"402\": \"Payment Required\"}");
+                break;
+            case 403:
+                resp.getWriter().println("{\"403\": \"Forbidden\"}");
+                break;
+            case 404:
+                resp.getWriter().println("{\"404\": \"Not Found\"}");
+                break;
+            case 422:
+                resp.getWriter().println("{\"404\": \"Unprocessable Content\"}");
+                break;
+            case 501:
+                resp.getWriter().println("{\"501\": \"Not Implemented\"}");
+                break;
+            case 502:
+                resp.getWriter().println("{\"502\": \"Bad Gateway\"}");
+                break;
+            case 503:
+                resp.getWriter().println("{\"503\": \"Service Unavailable\"}");
+                break;
+            case 504:
+                resp.getWriter().println("{\"504\": \"Gateway Timeout\"}");
+                break;
+            default:
+                resp.getWriter().println("{\"error\": \"Unexpected response code: " + responseCode + "\"}");
+                break;
         }
     }
 
-    private void handleUrnFi(String pid, String display, HDLServletRequest hdl) {
-        // Handle URN FI URLs
-        String redirectUrl = null;
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = "https://urn.fi/" + pid;
-                break;
+    private void logPIDMRAccess(String pidType, String pid, String display, int status, String addr) {
+        Main main = null;
+        String configDirStr = "./hs/svr_1";
+        StreamTable configTable = new StreamTable();
+        File serverDir = new File(configDirStr);
+        try {
+            configTable.readFromFile(new File(serverDir, HSG.CONFIG_FILE_NAME));
+        } catch (Exception e) {
+            System.err.println("Error reading configuration: " + e);
+            return;
         }
-        if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
+
+        try {
+            main = new Main(serverDir, configTable);
+            main.logAccess("HTTP:PIDMRHDLProxy", InetAddress.getByName(addr), AbstractMessage.OC_RESOLUTION, AbstractMessage.RC_SUCCESS, pidType + ";" + pid + ";" + display + ";" + status, Long.parseLong("123456789"));
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
         }
     }
 
-    private void handleDoi(String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws HandleException, IOException {
+    private void handleDoi(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws HandleException, IOException {
         String redirectUrl = null;
         JsonArray resourceRedirectUrl = null;
         JsonElement dataciteResourceRedirectUrl;
         String cnType = null;
-        String doiProvider;
+
         pid = checkForCanonicalDoiFormat(pid);
-        if (pid.contains("doi:")) {
-            pid = pid.split("doi:")[1];
-        }
+        pid = pid.replace(DOI_PREFIX, "");
+
         if (display.contains("cn_")) {
             cnType = display.split("cn_")[1];
-            display = "cn";
+            display = RESOLVING_MODE_CN;
         }
+
         switch (display) {
             case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = DOI_LANDINGPAGE_ENDPOINT + pid;
+                redirectUrl = config.getEndpoints().get("DOI_LANDINGPAGE_ENDPOINT") + pid;
                 break;
             case RESOLVING_MODE_METADATA:
-                doiProvider = getDoiProvider(pid);
-                if (doiProvider == null) {
-                    noDoiProvider(resp);
-                    return;
-                }
-                switch (doiProvider) {
-                    case "crossref":
-                        redirectUrl = CROSSREF_METADATA_ENDPOINT + pid;
-                        break;
-                    case "datacite":
-                        redirectUrl = DATACITE_METADATA_ENDPOINT + pid;
-                        break;
-                }
+                redirectUrl = handleMetadataMode(pid, resp);
+                if (redirectUrl == null) return;
                 break;
             case RESOLVING_MODE_RESOURCE:
-                doiProvider = getDoiProvider(pid);
-                if (doiProvider == null) {
-                    noDoiProvider(resp);
-                    return;
-                }
-                switch (doiProvider) {
-                    case "crossref":
-                        resourceRedirectUrl = fetchCrossrefDoiResourceUrl(CROSSREF_METADATA_ENDPOINT + pid);
-                        break;
-                    case "datacite":
-                        dataciteResourceRedirectUrl = fetchDataciteDoiResourceUrl(DATACITE_METADATA_ENDPOINT + pid);
-                        if (dataciteResourceRedirectUrl != null) {
-                            redirectUrl = dataciteResourceRedirectUrl.toString().replace("\"", "");
-                        }
-                        break;
-                }
+                resourceRedirectUrl = handleResourceMode(pid, resp, hdl);
+                if (resourceRedirectUrl == null) return;
                 break;
             case RESOLVING_MODE_CN:
                 if (cnType != null) {
-                    String mimType = getMimType(cnType);
-                    String crossrefUrl = "https://api.crossref.org/works/" + pid + "/transform/" + mimType;
-                    try {
-                        URL apiUrl = new URL(crossrefUrl);
-                        HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
-                        connection.setRequestMethod("GET");
-                        int responseCode = connection.getResponseCode();
-                        if (responseCode == 200) {
-                            redirectUrl = crossrefUrl;
-                        } else {
-                            redirectUrl = "https://data.crosscite.org/" + mimType + pid;
-                        }
-                    } catch (Exception e) {
-                        // Handle the exception here, e.g., log an error message or take corrective action.
-                    }
+                    redirectUrl = handleCnMode(pid, cnType);
                 }
                 break;
         }
+
         if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
+            redirect(pidType, pid, display, redirectUrl, hdl, resp);
         } else if (resourceRedirectUrl != null) {
-            int size = resourceRedirectUrl.size();
-            if (size == 1) {
-                JsonElement url = resourceRedirectUrl
-                        .get(0)
-                        .getAsJsonObject()
-                        .get("URL");
-                redirectUrl = url.toString().replace("\"", "");
-                hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
-            } else {
-                JsonArray urlJsonArray = new JsonArray();
-                for (JsonElement link : resourceRedirectUrl) {
-                    JsonObject linkObject = link.getAsJsonObject();
-                    String url = linkObject.get("URL").getAsString();
-                    urlJsonArray.add(url);
-                }
-                try {
-                    resp.setCharacterEncoding("UTF-8");
-                    resp.setContentType("application/json");
-                    resp.getWriter().println(urlJsonArray);
-                } catch (IOException e) {
-                    // Handle the exception here, e.g., log an error message or take corrective action.
-                }
-            }
+            processResourceRedirectUrl(resourceRedirectUrl, pidType, pid, display, hdl, resp);
         } else {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, DOI_LANDINGPAGE_ENDPOINT + pid);
+            redirect(pidType, pid, display, redirectUrl, hdl, resp);
+        }
+    }
+
+    private String handleMetadataMode(String pid, HttpServletResponse resp) throws IOException {
+        String doiProvider = getDoiProvider(pid);
+        if (doiProvider == null) {
+            noDoiProvider(resp);
+            return null;
+        }
+
+        switch (doiProvider) {
+            case CROSSREF:
+                return config.getEndpoints().get("CROSSREF_METADATA_ENDPOINT") + pid;
+            case DATACITE:
+                return config.getEndpoints().get("DATACITE_METADATA_ENDPOINT") + pid;
+            default:
+                return null;
+        }
+    }
+
+    private JsonArray handleResourceMode(String pid, HttpServletResponse resp, HDLServletRequest hdl) throws IOException {
+        String doiProvider = getDoiProvider(pid);
+        if (doiProvider == null) {
+            noDoiProvider(resp);
+            return null;
+        }
+
+        switch (doiProvider) {
+            case CROSSREF:
+                return fetchCrossrefDoiResourceUrl(config.getEndpoints().get("CROSSREF_METADATA_ENDPOINT") + pid);
+            case DATACITE:
+                JsonElement dataciteResourceRedirectUrl = fetchDataciteDoiResourceUrl(config.getEndpoints().get("DATACITE_METADATA_ENDPOINT") + pid);
+                if (dataciteResourceRedirectUrl != null) {
+                    String redirectUrl = dataciteResourceRedirectUrl.toString().replace("\"", "");
+                    redirect(pidType, pid, display, redirectUrl, hdl, resp);
+                }
+                return null;
+            default:
+                return null;
+        }
+    }
+
+    private String handleCnMode(String pid, String cnType) {
+        String mimType = getMimType(cnType);
+        String crossrefUrl = "https://api.crossref.org/works/" + pid + "/transform/" + mimType;
+        try {
+            URL apiUrl = new URL(crossrefUrl);
+            HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
+            connection.setRequestMethod("GET");
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200) {
+                return crossrefUrl;
+            } else {
+                return "https://data.crosscite.org/" + mimType + pid;
+            }
+        } catch (Exception e) {
+            // Handle the exception here, e.g., log an error message or take corrective action.
+            return null;
+        }
+    }
+
+    private void processResourceRedirectUrl(JsonArray resourceRedirectUrl, String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        int size = resourceRedirectUrl.size();
+        if (size == 1) {
+            JsonElement url = resourceRedirectUrl.get(0).getAsJsonObject().get("URL");
+            String redirectUrl = url.toString().replace("\"", "");
+            redirect(pidType, pid, display, redirectUrl, hdl, resp);
+        } else {
+            JsonArray urlJsonArray = new JsonArray();
+            for (JsonElement link : resourceRedirectUrl) {
+                JsonObject linkObject = link.getAsJsonObject();
+                String url = linkObject.get("URL").getAsString();
+                urlJsonArray.add(url);
+            }
+            resp.setCharacterEncoding("UTF-8");
+            resp.setContentType("application/json");
+            resp.getWriter().println(urlJsonArray);
         }
     }
 
@@ -497,110 +594,20 @@ public class PIDMRHDLProxy extends HDLProxy {
         return doiProvider;
     }
 
-    private void handleOrcid(String pid, String display, HDLServletRequest hdl) {
-        // Handle URN FI URLs
-        String redirectUrl = null;
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = "https://orcid.org/" + pid;
-                break;
-        }
-        if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
-        }
-    }
-
-    private void handleZbmath(String pid, String display, HDLServletRequest hdl) {
-        // Handle zbMATH URLs
-        String redirectUrl = null;
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = "https://zbmath.org/authors/" + pid;
-                break;
-            case RESOLVING_MODE_METADATA:
-                redirectUrl = "https://api.zbmath.org/v1/author/" + pid;
-                break;
-        }
-        if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
-        }
-    }
-
-    private void handleSwmath(String pid, String display, HDLServletRequest hdl) {
-        // Handle swMATH URLs
-        String redirectUrl = null;
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = "https://zbmath.org/software/" + pid;
-                break;
-            case RESOLVING_MODE_METADATA:
-                redirectUrl = "https://api.zbmath.org/v1/software/" + pid;
-                break;
-        }
-        if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
-        }
-    }
-
-    private void handleZbl(String pid, String display, HDLServletRequest hdl) {
-        // Handle swMATH URLs
-        String redirectUrl = null;
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = "https://zbmath.org/" + pid;
-                break;
-            case RESOLVING_MODE_METADATA:
-                redirectUrl = "https://api.zbmath.org/v1/document/" + pid;
-                break;
-        }
-        if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
-        }
-    }
-
-    private void handleRor(String pid, String display, HDLServletRequest hdl) {
-        // Handle swMATH URLs
-        String redirectUrl = null;
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = "https://ror.org/" + pid;
-                break;
-            case RESOLVING_MODE_METADATA:
-                redirectUrl = "https://api.ror.org/v1/organizations/" + pid;
-                break;
-        }
-        if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
-        }
-    }
-
-    private void handleISLRN(String pid, String display, HDLServletRequest hdl) {
-        // Handle ISLRN URLs
-        String redirectUrl = null;
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = "https://www.islrn.org/resources/" + pid;
-                break;
-        }
-        if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
-        }
-    }
-
     private String getMimType(String cnType) {
         String mimType = null;
         switch (cnType) {
             case CN_BIBTEX:
-                mimType = "application/x-bibtex/";
+                mimType = config.getMimTypes().get("CN_BIBTEX_MIMTYPE");
                 break;
             case CN_TURTLE:
-                mimType = "text/turtle/";
+                mimType = config.getMimTypes().get("CN_TURTLE_MIMTYPE");
                 break;
             case CN_RDF:
-                mimType = "application/rdf+xml/";
+                mimType = config.getMimTypes().get("CN_RDF_MIMTYPE");
                 break;
             case CN_CITATION:
-                mimType = "application/vnd.citationstyles.csl+json/";
+                mimType = config.getMimTypes().get("CN_CITATION_MIMTYPE");
                 break;
             default:
                 break;
@@ -667,89 +674,97 @@ public class PIDMRHDLProxy extends HDLProxy {
         return null;
     }
 
-    private void handleArk(String pid, String display, HDLServletRequest hdl) {
-        // Handle Ark URLs
+    private void handleZenodo(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+        String documentId = extractDocumentId(pid);
+        if (documentId == null) {
+            // Handle the exception here, e.g., log an error message or take corrective action.
+            // Error ("No match found");
+            return;
+        }
+
         String redirectUrl = null;
         switch (display) {
             case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = "https://n2t.net/" + pid;
+                redirectUrl = config.getEndpoints().get("Zenodo_LANDINGPAGE_ENDPOINT") + documentId;
                 break;
             case RESOLVING_MODE_METADATA:
-                redirectUrl = "https://n2t.net/" + pid + "/?";
+                redirectUrl = config.getEndpoints().get("Zenodo_METADATA_ENDPOINT") + documentId;
                 break;
+            case RESOLVING_MODE_RESOURCE:
+                handleZenodoResourceMode(pidType, pid, display, hdl, documentId, resp);
+                return;  // Return here since handleZenodoResourceMode deals with the response
         }
+
         if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
+            redirect(pidType, pid, display, redirectUrl, hdl, resp);
         }
     }
 
-    private void handleZenodo(String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
-        // Handle Zenodo URLs
+    private String extractDocumentId(String pid) {
         String regex = "(\\d+)$";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(pid);
-        String documentId = null;
         if (matcher.find()) {
-            documentId = matcher.group(1);
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    private void handleZenodoResourceMode(String pidType, String pid, String display, HDLServletRequest hdl, String documentId, HttpServletResponse resp) {
+        String metadataUrl = config.getEndpoints().get("Zenodo_RESOURCE_ENDPOINT") + documentId;
+        String jsonContent = fetchContent(metadataUrl);
+
+        if (jsonContent != null) {
+            JsonArray metadataFiles = extractMetadataFiles(jsonContent);
+            if (metadataFiles != null) {
+                processMetadataFiles(pidType, pid, display, hdl, metadataFiles, resp);
+            } else {
+                // Handle the exception here, e.g., log an error message or take corrective action.
+                // Error ("No 'files' array found within the JSON content.");
+            }
+        }
+    }
+
+    private JsonArray extractMetadataFiles(String jsonContent) {
+        JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
+        if (jsonObject.has("files") && jsonObject.get("files").isJsonArray()) {
+            return jsonObject.getAsJsonArray("files");
+        }
+        return null;
+    }
+
+    private void processMetadataFiles(String pidType, String pid, String display, HDLServletRequest hdl, JsonArray metadataFiles, HttpServletResponse resp) {
+        int size = metadataFiles.size();
+        if (size == 1) {
+            String redirectUrl = metadataFiles
+                    .get(0)
+                    .getAsJsonObject()
+                    .get("links")
+                    .getAsJsonObject()
+                    .get("self")
+                    .getAsString();
+            redirect(pidType, pid, display, redirectUrl, hdl, resp);
         } else {
+            JsonArray urlJsonArray = new JsonArray();
+            for (JsonElement link : metadataFiles) {
+                String url = link.getAsJsonObject()
+                        .get("links")
+                        .getAsJsonObject()
+                        .get("self")
+                        .getAsString();
+                urlJsonArray.add(url);
+            }
+            sendJsonResponse(urlJsonArray.toString(), resp);
+        }
+    }
+
+    private void sendJsonResponse(String jsonArrayString, HttpServletResponse resp) {
+        try {
+            resp.setCharacterEncoding("UTF-8");
+            resp.setContentType("application/json");
+            resp.getWriter().println(jsonArrayString);
+        } catch (IOException e) {
             // Handle the exception here, e.g., log an error message or take corrective action.
-            // Error ("No match found");
-        }
-        String redirectUrl = null;
-        JsonArray redirectUrl1 = null;
-        JsonArray metadataFiles = null;
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = "https://zenodo.org/record/" + documentId;
-                break;
-            case RESOLVING_MODE_METADATA:
-                redirectUrl = "https://zenodo.org/api/records/" + documentId;
-                break;
-            case RESOLVING_MODE_RESOURCE:
-                String metadataUrl = "https://zenodo.org/api/records/" + documentId;
-                String jsonContent = fetchContent(metadataUrl);
-
-                if (jsonContent != null) {
-
-                    JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
-                    if (jsonObject.has("files") && jsonObject.get("files").isJsonArray()) {
-                        metadataFiles = jsonObject.getAsJsonArray("files");
-                    } else {
-                        // Handle the exception here, e.g., log an error message or take corrective action.
-                        // Error ("No 'links' array found within the 'message' object.");
-                    }
-                    if (metadataFiles != null) {
-                        int size = metadataFiles.size();
-                        if (size == 1) {
-                            JsonElement url1 = metadataFiles
-                                    .get(0)
-                                    .getAsJsonObject()
-                                    .get("links")
-                                    .getAsJsonObject()
-                                    .get("self");
-                            redirectUrl = url1.toString().replace("\"", "");
-                        } else {
-                            JsonArray urlJsonArray = new JsonArray();
-                            for (JsonElement link : metadataFiles) {
-                                JsonObject linkObject = link.getAsJsonObject().get("links").getAsJsonObject();
-                                String url2 = linkObject.get("self").getAsString();
-                                urlJsonArray.add(url2);
-                            }
-                            String jsonArrayString = urlJsonArray.toString();
-                            try {
-                                resp.setCharacterEncoding("UTF-8");
-                                resp.setContentType("application/json");
-                                resp.getWriter().println(jsonArrayString);
-                            } catch (IOException e) {
-                                // Handle the exception here, e.g., log an error message or take corrective action.
-                            }
-                        }
-                    }
-                }
-                break;
-        }
-        if (redirectUrl != null) {
-            hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
         }
     }
 
@@ -767,4 +782,110 @@ public class PIDMRHDLProxy extends HDLProxy {
             throw new HandleException(HandleException.INTERNAL_ERROR, AbstractMessage.getResponseCodeMessage(response.responseCode));
         }
     }
+
+    private void handleRedirect(String pidType, String pid, String display, String landingPageEndpoint, String metadataEndpoint, String resourceEndpoint, HDLServletRequest hdl, HttpServletResponse resp) {
+        String redirectUrl = null;
+        switch (display) {
+            case RESOLVING_MODE_LANDINGPAGE:
+                redirectUrl = landingPageEndpoint != null ? landingPageEndpoint + pid : null;
+                break;
+            case RESOLVING_MODE_METADATA:
+                if (metadataEndpoint != null) {
+                    if (pidType.equals("arXiv")) {
+                        String id = pid.split(":")[1];
+                        redirectUrl = metadataEndpoint + id;
+                    } else if (pidType.equals("swh")) {
+                        redirectUrl = metadataEndpoint + pid + "?format=json";
+                    } else if (pidType.equals("ark")) {
+                        redirectUrl = metadataEndpoint + pid + "/?";
+                    } else {
+                        redirectUrl = metadataEndpoint + pid;
+                    }
+                }
+                break;
+            case RESOLVING_MODE_RESOURCE:
+                if (resourceEndpoint != null) {
+                    if (pidType.equals("arXiv")) {
+                        redirectUrl = resourceEndpoint + pid + ".pdf";
+                    } else if (pidType.equals("swh")) {
+                        redirectUrl = resourceEndpoint + pid + "/raw/";
+                    } else if (pidType.equals("urn:nbn:de")) {
+                        redirectUrl = fetchUrnDeResourceUrl(pid, metadataEndpoint);
+                    }
+                }
+                break;
+        }
+        if (redirectUrl != null) {
+            redirect(pidType, pid, display, redirectUrl, hdl, resp);
+        }
+    }
+    private void handleZbl(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("Zbl_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Zbl_METADATA_ENDPOINT"), null, hdl, resp);
+    }
+
+    private void handleSwmath(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("Swmath_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Swmath_METADATA_ENDPOINT"), null, hdl, resp);
+    }
+
+    private void handleZbmath(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("Zbmath_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Zbmath_METADATA_ENDPOINT"), null, hdl, resp);
+    }
+
+    private void handleOrcid(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("Orcid_LANDINGPAGE_ENDPOINT"), null, null, hdl, resp);
+    }
+
+    private void handleUrnFi(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("UrnFi_LANDINGPAGE_ENDPOINT"), null, null, hdl, resp);
+    }
+
+    private void handleArxiv(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("Arxiv_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Arxiv_METADATA_ENDPOINT"), config.getEndpoints().get("Arxiv_RESOURCE_ENDPOINT"), hdl, resp);
+    }
+
+    private void handle21(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("Hdl_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("HDl_METADATA_ENDPOINT"), null, hdl, resp);
+    }
+
+    private void handleSwh(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("Swh_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Swh_METADATA_ENDPOINT"), config.getEndpoints().get("Swh_RESOURCE_ENDPOINT"), hdl, resp);
+    }
+
+    private void handleRor(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("ROR_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ROR_METADATA_ENDPOINT"), null, hdl, resp);
+    }
+
+    private void handleISLRN(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("ISLRN_LANDINGPAGE_ENDPOINT"), null, null, hdl, resp);
+    }
+
+    private void handleArk(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("ARK_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ARK_METADATA_ENDPOINT"), null, hdl, resp);
+    }
+
+    private void handleUrnDe(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("UrnDe_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("UrnDe_METADATA_ENDPOINT"), config.getEndpoints().get("UrnDe_METADATA_ENDPOINT"), hdl, resp);
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
