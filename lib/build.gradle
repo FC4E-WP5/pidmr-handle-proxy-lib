@@ -17,7 +17,7 @@ ext {
 }
 
 dependencies {
-    implementation "$group:handle:$handleVersion"
+    implementation "net.handle:handle:$handleVersion"
     implementation "javax.servlet:javax.servlet-api:$servletApiVersion"
 }
 
@@ -34,19 +34,19 @@ tasks.named('test', Test) {
 tasks.jar {
     manifest {
         attributes(
-            'Implementation-Title': project.name,
-            'Implementation-Version': project.version
+                'Implementation-Title': project.name,
+                'Implementation-Version': project.version
         )
     }
     archiveBaseName.set("PIDMRHDLProxy")
-    archiveVersion.set("$version")
+    archiveVersion.set(version)
 }
 
-tasks.withType(JavaCompile).configureEach {
+tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
-tasks.withType(Test).configureEach {
+tasks.withType(Test) {
     testLogging {
         events 'PASSED', 'FAILED', 'SKIPPED'
     }
@@ -55,4 +55,3 @@ tasks.withType(Test).configureEach {
 gradle.settingsEvaluated {
     startParameter.enableConfigurationCache = true
 }
-

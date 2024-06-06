@@ -1,0 +1,47 @@
+{
+  "providersFilePath": "/home/providers/providers.json",
+  "providersBackupFilePath": "/home/providers/providers_backup.json",
+  "endpoints": {
+    "CROSSREF_METADATA_ENDPOINT": "https://api.crossref.org/works/",
+    "DATACITE_METADATA_ENDPOINT": "https://api.datacite.org/dois/",
+    "DOI_LANDINGPAGE_ENDPOINT": "https://dx.doi.org/",
+    "ISLRN_LANDINGPAGE_ENDPOINT": "https://www.islrn.org/resources/",
+    "ARK_LANDINGPAGE_ENDPOINT": "https://n2t.net/",
+    "ARK_METADATA_ENDPOINT": "https://n2t.net/",
+    "ROR_LANDINGPAGE_ENDPOINT": "https://ror.org/",
+    "ROR_METADATA_ENDPOINT": "https://api.ror.org/v1/organizations/",
+    "Zbmath_LANDINGPAGE_ENDPOINT": "https://zbmath.org/authors/",
+    "Zbmath_METADATA_ENDPOINT": "https://api.zbmath.org/v1/author/",
+    "Zenodo_LANDINGPAGE_ENDPOINT": "https://zenodo.org/record/",
+    "Zenodo_METADATA_ENDPOINT": "https://zenodo.org/api/records/",
+    "Zenodo_RESOURCE_ENDPOINT": "https://zenodo.org/api/records/",
+    "Zbl_LANDINGPAGE_ENDPOINT": "https://zbmath.org/",
+    "Zbl_METADATA_ENDPOINT": "https://api.zbmath.org/v1/document/",
+    "Arxiv_LANDINGPAGE_ENDPOINT": "https://arxiv.org/abs/",
+    "Arxiv_METADATA_ENDPOINT": "http://export.arxiv.org/oai2?verb=GetRecord&metadataPrefix=oai_dc&identifier=oai:arXiv:org:",
+    "Arxiv_RESOURCE_ENDPOINT": "https://arxiv.org/pdf/",
+    "UrnDe_LANDINGPAGE_ENDPOINT": "https://nbn-resolving.org/redirect/",
+    "UrnDe_METADATA_ENDPOINT": "https://nbn-resolving.org/json/",
+    "UrnDe_RESOURCE_ENDPOINT": "https://nbn-resolving.org/json/",
+    "UrnFi_LANDINGPAGE_ENDPOINT": "https://urn.fi/",
+    "Orcid_LANDINGPAGE_ENDPOINT": "https://orcid.org/",
+    "Swmath_LANDINGPAGE_ENDPOINT": "https://zbmath.org/software/",
+    "Swmath_METADATA_ENDPOINT": "https://api.zbmath.org/v1/software/",
+    "Swh_LANDINGPAGE_ENDPOINT": "https://archive.softwareheritage.org/",
+    "Swh_METADATA_ENDPOINT": "https://archive.softwareheritage.org/api/1/resolve/",
+    "Swh_RESOURCE_ENDPOINT": "https://archive.softwareheritage.org/browse/content/sha1_git:",
+    "Hdl_LANDINGPAGE_ENDPOINT": "https://hdl.handle.net/",
+    "HDl_METADATA_ENDPOINT": "https://hdl.handle.net/"
+  },
+  "mimTypes": {
+    "CN_BIBTEX_MIMTYPE": "application/x-bibtex/",
+    "CN_TURTLE_MIMTYPE": "text/turtle/",
+    "CN_RDF_MIMTYPE": "application/rdf+xml/",
+    "CN_CITATION_MIMTYPE": "application/vnd.citationstyles.csl+json/"
+  },
+  "resolvingModes": {
+    "RESOLVING_MODE_LANDINGPAGE": "landingpage",
+    "RESOLVING_MODE_METADATA": "metadata",
+    "RESOLVING_MODE_RESOURCE": "resource"
+  }
+}
