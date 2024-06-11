@@ -416,7 +416,7 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void logPIDMRAccess(String pidType, String pid, String display, int status, String addr) {
         Main main = null;
-        String configDirStr = "./hs/svr_1";
+        String configDirStr = "/hs/svr_1";
         StreamTable configTable = new StreamTable();
         File serverDir = new File(configDirStr);
         try {
