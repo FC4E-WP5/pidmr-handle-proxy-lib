@@ -1,6 +1,8 @@
 # pidmr-handle-proxy-lib
 
-
+### Requirements
+- Java 8 (or 11 or 18)
+- Gradle 8.7
 
 ## Persistent Identifier Meta Resolver Proxy (PIDMR Proxy)
 
