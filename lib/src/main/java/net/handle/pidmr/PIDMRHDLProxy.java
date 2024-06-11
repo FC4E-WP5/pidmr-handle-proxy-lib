@@ -55,9 +55,6 @@ public class PIDMRHDLProxy extends HDLProxy {
     private final String CN_CITATION = "citation";
     private String pidType = null;
     private String recognizedPid = null;
-//    private static final String Zenodo_LANDINGPAGE_ENDPOINT = "https://zenodo.org/record/";
-//    private static final String Zenodo_METADATA_ENDPOINT = "https://zenodo.org/api/records/";
-//    private static final String Zenodo_RESOURCE_ENDPOINT = "https://zenodo.org/api/records/";
 
     protected HandleServerInterface handleServer;
 
@@ -416,9 +413,9 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void logPIDMRAccess(String pidType, String pid, String display, int status, String addr) {
         Main main = null;
-        String configDirStr = "/hs/svr_1";
+        String hdlServerConfigPath = config.getHdlServerConfigPath();
         StreamTable configTable = new StreamTable();
-        File serverDir = new File(configDirStr);
+        File serverDir = new File(hdlServerConfigPath);
         try {
             configTable.readFromFile(new File(serverDir, HSG.CONFIG_FILE_NAME));
         } catch (Exception e) {

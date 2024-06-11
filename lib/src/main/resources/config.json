@@ -1,4 +1,5 @@
 {
+  "hdlServerConfigPath": "/hs/svr_1",
   "providersFilePath": "/home/providers/providers.json",
   "providersBackupFilePath": "/home/providers/providers_backup.json",
   "endpoints": {

@@ -27,11 +27,16 @@ public class ConfigLoader {
     }
 
     public static class Config {
+        private String hdlServerConfigPath;
         private String providersFilePath;
         private String providersBackupFilePath;
         private Map<String, String> endpoints;
         private Map<String, String> mimTypes;
         private Map<String, String> resolvingModes;
+
+        public String getHdlServerConfigPath() {
+            return hdlServerConfigPath;
+        }
 
         public String getProvidersFilePath() {
             return providersFilePath;
