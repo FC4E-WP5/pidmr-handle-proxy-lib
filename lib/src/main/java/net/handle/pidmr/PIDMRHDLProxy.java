@@ -365,7 +365,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                 addr = hdl.getRemoteAddr();
             } catch (Throwable t) {
             }
-            logPIDMRAccess(pidType, pid, display, responseCode, addr);
+            logPIDMRAccess(pidType, pid, display, responseCode, addr, hdl.getResponseTime());
         } catch (IOException e) {
             // Log error or handle exception
         }
@@ -411,7 +411,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    private void logPIDMRAccess(String pidType, String pid, String display, int status, String addr) {
+    private void logPIDMRAccess(String pidType, String pid, String display, int status, String addr, long responseTime) {
         Main main = null;
         String hdlServerConfigPath = config.getHdlServerConfigPath();
         StreamTable configTable = new StreamTable();
@@ -425,7 +425,7 @@ public class PIDMRHDLProxy extends HDLProxy {
 
         try {
             main = new Main(serverDir, configTable);
-            main.logAccess("HTTP:PIDMRHDLProxy", InetAddress.getByName(addr), AbstractMessage.OC_RESOLUTION, AbstractMessage.RC_SUCCESS, pidType + ";" + pid + ";" + display + ";" + status, Long.parseLong("123456789"));
+            main.logAccess("HTTP:PIDMRHDLProxy", InetAddress.getByName(addr), AbstractMessage.OC_RESOLUTION, AbstractMessage.RC_SUCCESS, pidType + ";" + pid + ";" + display + ";" + status, responseTime);
         } catch (Exception e) {
             e.printStackTrace(System.err);
         }
