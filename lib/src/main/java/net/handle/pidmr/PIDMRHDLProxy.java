@@ -343,7 +343,13 @@ public class PIDMRHDLProxy extends HDLProxy {
         return null;
     }
 
-    private void redirect(String pidType, String pid, String display, String redirectUrl, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void redirect(String pidType, String pid, String display, String redirectUrl, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        String addr = "";
+        try {
+            addr = hdl.getRemoteAddr();
+        } catch (Throwable t) {
+        }
+
         try {
             URL apiUrl = new URL(redirectUrl);
             HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
@@ -360,14 +366,10 @@ public class PIDMRHDLProxy extends HDLProxy {
                 handleHttpError(responseCode, resp);
             }
 
-            String addr = "";
-            try {
-                addr = hdl.getRemoteAddr();
-            } catch (Throwable t) {
-            }
-            logPIDMRAccess(pidType, pid, display, responseCode, addr, hdl.getResponseTime());
+            logPIDMRAccess(pidType, pid, display, responseCode, addr, AbstractMessage.RC_SUCCESS, hdl.getResponseTime());
         } catch (IOException e) {
-            // Log error or handle exception
+            handleHttpError(500, resp);
+            logPIDMRAccess(pidType, pid, display, 500, addr, AbstractMessage.RC_ERROR, hdl.getResponseTime());
         }
     }
     private void handleHttpError(int responseCode, HttpServletResponse resp) throws IOException {
@@ -393,6 +395,9 @@ public class PIDMRHDLProxy extends HDLProxy {
             case 422:
                 resp.getWriter().println("{\"404\": \"Unprocessable Content\"}");
                 break;
+            case 500:
+                resp.getWriter().println("{\"500\": \"Internal Server Error\"}");
+                break;
             case 501:
                 resp.getWriter().println("{\"501\": \"Not Implemented\"}");
                 break;
@@ -411,7 +416,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    private void logPIDMRAccess(String pidType, String pid, String display, int status, String addr, long responseTime) {
+    private void logPIDMRAccess(String pidType, String pid, String display, int status, String addr, int hdlResponseCode,long responseTime) {
         Main main = null;
         String hdlServerConfigPath = config.getHdlServerConfigPath();
         StreamTable configTable = new StreamTable();
@@ -425,7 +430,7 @@ public class PIDMRHDLProxy extends HDLProxy {
 
         try {
             main = new Main(serverDir, configTable);
-            main.logAccess("HTTP:PIDMRHDLProxy", InetAddress.getByName(addr), AbstractMessage.OC_RESOLUTION, AbstractMessage.RC_SUCCESS, pidType + ";" + pid + ";" + display + ";" + status, responseTime);
+            main.logAccess("HTTP:PIDMRHDLProxy", InetAddress.getByName(addr), AbstractMessage.OC_RESOLUTION, hdlResponseCode, pidType + ";" + pid + ";" + display + ";" + status, responseTime);
         } catch (Exception e) {
             e.printStackTrace(System.err);
         }
@@ -671,7 +676,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         return null;
     }
 
-    private void handleZenodo(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handleZenodo(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         String documentId = extractDocumentId(pid);
         if (documentId == null) {
             // Handle the exception here, e.g., log an error message or take corrective action.
@@ -707,7 +712,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         return null;
     }
 
-    private void handleZenodoResourceMode(String pidType, String pid, String display, HDLServletRequest hdl, String documentId, HttpServletResponse resp) {
+    private void handleZenodoResourceMode(String pidType, String pid, String display, HDLServletRequest hdl, String documentId, HttpServletResponse resp) throws IOException {
         String metadataUrl = config.getEndpoints().get("Zenodo_RESOURCE_ENDPOINT") + documentId;
         String jsonContent = fetchContent(metadataUrl);
 
@@ -730,7 +735,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         return null;
     }
 
-    private void processMetadataFiles(String pidType, String pid, String display, HDLServletRequest hdl, JsonArray metadataFiles, HttpServletResponse resp) {
+    private void processMetadataFiles(String pidType, String pid, String display, HDLServletRequest hdl, JsonArray metadataFiles, HttpServletResponse resp) throws IOException {
         int size = metadataFiles.size();
         if (size == 1) {
             String redirectUrl = metadataFiles
@@ -780,7 +785,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    private void handleRedirect(String pidType, String pid, String display, String landingPageEndpoint, String metadataEndpoint, String resourceEndpoint, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handleRedirect(String pidType, String pid, String display, String landingPageEndpoint, String metadataEndpoint, String resourceEndpoint, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         String redirectUrl = null;
         switch (display) {
             case RESOLVING_MODE_LANDINGPAGE:
@@ -816,51 +821,51 @@ public class PIDMRHDLProxy extends HDLProxy {
             redirect(pidType, pid, display, redirectUrl, hdl, resp);
         }
     }
-    private void handleZbl(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handleZbl(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("Zbl_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Zbl_METADATA_ENDPOINT"), null, hdl, resp);
     }
 
-    private void handleSwmath(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handleSwmath(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("Swmath_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Swmath_METADATA_ENDPOINT"), null, hdl, resp);
     }
 
-    private void handleZbmath(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handleZbmath(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("Zbmath_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Zbmath_METADATA_ENDPOINT"), null, hdl, resp);
     }
 
-    private void handleOrcid(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handleOrcid(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("Orcid_LANDINGPAGE_ENDPOINT"), null, null, hdl, resp);
     }
 
-    private void handleUrnFi(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handleUrnFi(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("UrnFi_LANDINGPAGE_ENDPOINT"), null, null, hdl, resp);
     }
 
-    private void handleArxiv(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handleArxiv(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("Arxiv_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Arxiv_METADATA_ENDPOINT"), config.getEndpoints().get("Arxiv_RESOURCE_ENDPOINT"), hdl, resp);
     }
 
-    private void handle21(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handle21(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("Hdl_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("HDl_METADATA_ENDPOINT"), null, hdl, resp);
     }
 
-    private void handleSwh(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handleSwh(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("Swh_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Swh_METADATA_ENDPOINT"), config.getEndpoints().get("Swh_RESOURCE_ENDPOINT"), hdl, resp);
     }
 
-    private void handleRor(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handleRor(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("ROR_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ROR_METADATA_ENDPOINT"), null, hdl, resp);
     }
 
-    private void handleISLRN(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handleISLRN(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("ISLRN_LANDINGPAGE_ENDPOINT"), null, null, hdl, resp);
     }
 
-    private void handleArk(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handleArk(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("ARK_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ARK_METADATA_ENDPOINT"), null, hdl, resp);
     }
 
-    private void handleUrnDe(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) {
+    private void handleUrnDe(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("UrnDe_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("UrnDe_METADATA_ENDPOINT"), config.getEndpoints().get("UrnDe_METADATA_ENDPOINT"), hdl, resp);
     }
 }
