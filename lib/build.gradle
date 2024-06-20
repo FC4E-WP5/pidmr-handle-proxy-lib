@@ -2,7 +2,7 @@ plugins {
     id 'java-library'
 }
 
-group = 'net.handle'
+group = 'eu.faircore4eosc'
 version = '0.0.1-SNAPSHOT'
 
 repositories {
