@@ -1,13 +1,6 @@
-/**********************************************************************\
- © COPYRIGHT 2019 Corporation for National Research Initiatives (CNRI);
-                        All rights reserved.
+package eu.faircore4eosc.pidmr;
 
-        The HANDLE.NET software is made available subject to the
-      Handle.Net Public License Agreement, which may be obtained at
-          http://hdl.handle.net/20.1000/112 or hdl:20.1000/112
-\**********************************************************************/
-
-package net.handle.pidmr;
+import eu.faircore4eosc.pidmr.ConfigLoader;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -35,7 +28,6 @@ import net.handle.apps.servlet_proxy.HDLProxy;
 import net.handle.apps.servlet_proxy.HDLServletRequest;
 import net.handle.apps.servlet_proxy.HDLServletRequest.ResponseType;
 import net.handle.hdllib.*;
-import net.handle.pidmr.ConfigLoader;
 import net.handle.server.Main;
 import net.handle.server.servletcontainer.HandleServerInterface;
 

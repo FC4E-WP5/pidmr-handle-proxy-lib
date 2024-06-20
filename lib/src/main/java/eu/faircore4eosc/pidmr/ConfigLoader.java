@@ -1,4 +1,4 @@
-package net.handle.pidmr;
+package eu.faircore4eosc.pidmr;
 
 import com.google.gson.Gson;
 import java.io.IOException;
