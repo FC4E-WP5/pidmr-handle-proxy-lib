@@ -68,6 +68,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         ZBL,
         ROR,
         ISLRN,
+        ISNI,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -101,6 +102,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return ROR;
                 case "ISLRN":
                     return ISLRN;
+                case "ISNI":
+                    return ISNI;
                 default:
                     return UNKNOWN;
             }
@@ -238,6 +241,9 @@ public class PIDMRHDLProxy extends HDLProxy {
                 break;
             case ISLRN:
                 handleISLRN(pidType, pid, display, hdl, resp);
+                break;
+            case ISNI:
+                handleISNI(pidType, pid, display, hdl, resp);
                 break;
             default:
                 noPidType(resp);
@@ -851,6 +857,10 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void handleISLRN(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("ISLRN_LANDINGPAGE_ENDPOINT"), null, null, hdl, resp);
+    }
+
+    private void handleISNI(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("ISNI_LANDINGPAGE_ENDPOINT"), null, null, hdl, resp);
     }
 
     private void handleArk(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
