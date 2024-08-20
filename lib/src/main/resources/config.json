@@ -8,6 +8,8 @@
     "DOI_LANDINGPAGE_ENDPOINT": "https://dx.doi.org/",
     "ISLRN_LANDINGPAGE_ENDPOINT": "https://www.islrn.org/resources/",
     "ISNI_LANDINGPAGE_ENDPOINT": "https://isni.oclc.org/cbs/xslt/DB=1.2//CMD?ACT=SRCH&IKT=8006&TRM=ISN%3A",
+    "ISBN_LANDINGPAGE_ENDPOINT": "https://www.isbn.de/",
+    "ISBN_METADATA_ENDPOINT": "https://www.googleapis.com/books/v1/volumes?q=isbn:",
     "ARK_LANDINGPAGE_ENDPOINT": "https://n2t.net/",
     "ARK_METADATA_ENDPOINT": "https://n2t.net/",
     "ROR_LANDINGPAGE_ENDPOINT": "https://ror.org/",
