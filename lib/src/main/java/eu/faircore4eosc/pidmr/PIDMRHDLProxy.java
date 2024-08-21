@@ -70,6 +70,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         ISLRN,
         ISNI,
         ISBN,
+        BIBCODE,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -107,6 +108,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return ISNI;
                 case "ISBN":
                     return ISBN;
+                case "Bibcode":
+                    return BIBCODE;
                 default:
                     return UNKNOWN;
             }
@@ -250,6 +253,9 @@ public class PIDMRHDLProxy extends HDLProxy {
                 break;
             case ISBN:
                 handleISBN(pidType, pid, display, hdl, resp);
+                break;
+            case BIBCODE:
+                handleBIBCODE(pidType, pid, display, hdl, resp);
                 break;
             default:
                 noPidType(resp);
@@ -871,6 +877,10 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void handleISBN(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, config.getEndpoints().get("ISBN_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ISBN_METADATA_ENDPOINT"), null, hdl, resp);
+    }
+
+    private void handleBIBCODE(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("BIBCODE_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("BIBCODE_METADATA_ENDPOINT"), null, hdl, resp);
     }
 
     private void handleArk(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
