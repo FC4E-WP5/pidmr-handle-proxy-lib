@@ -10,6 +10,8 @@
     "ISNI_LANDINGPAGE_ENDPOINT": "https://isni.oclc.org/cbs/xslt/DB=1.2//CMD?ACT=SRCH&IKT=8006&TRM=ISN%3A",
     "ISBN_LANDINGPAGE_ENDPOINT": "https://www.isbn.de/",
     "ISBN_METADATA_ENDPOINT": "https://www.googleapis.com/books/v1/volumes?q=isbn:",
+    "BIBCODE_LANDINGPAGE_ENDPOINT": "https://ui.adsabs.harvard.edu/abs/",
+    "BIBCODE_METADATA_ENDPOINT": "https://articles.adsabs.harvard.edu/pdf/",
     "ARK_LANDINGPAGE_ENDPOINT": "https://n2t.net/",
     "ARK_METADATA_ENDPOINT": "https://n2t.net/",
     "ROR_LANDINGPAGE_ENDPOINT": "https://ror.org/",
