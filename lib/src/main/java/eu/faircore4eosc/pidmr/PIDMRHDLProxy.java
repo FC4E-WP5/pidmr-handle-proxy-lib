@@ -821,6 +821,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                         redirectUrl = resourceEndpoint + pid + ".pdf";
                     } else if (pidType.equals("swh")) {
                         redirectUrl = resourceEndpoint + pid + "/raw/";
+                    } else if (pidType.equals("Bibcode")) {
+                        redirectUrl = resourceEndpoint + pid + "/PUB_PDF/";
                     } else if (pidType.equals("urn:nbn:de")) {
                         redirectUrl = fetchUrnDeResourceUrl(pid, metadataEndpoint);
                     }
@@ -880,7 +882,7 @@ public class PIDMRHDLProxy extends HDLProxy {
     }
 
     private void handleBIBCODE(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("BIBCODE_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("BIBCODE_METADATA_ENDPOINT"), null, hdl, resp);
+        handleRedirect(pidType, pid, display, config.getEndpoints().get("BIBCODE_LANDINGPAGE_ENDPOINT"), null, config.getEndpoints().get("BIBCODE_RESOURCE_ENDPOINT"), hdl, resp);
     }
 
     private void handleArk(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
