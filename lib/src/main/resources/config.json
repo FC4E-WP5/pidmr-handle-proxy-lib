@@ -1,5 +1,6 @@
 {
   "hdlServerConfigPath": "/hs/svr_1",
+  "influxdbConfigFile": "influxdb.config",
   "providersFilePath": "/home/providers/providers.json",
   "providersBackupFilePath": "/home/providers/providers_backup.json",
   "endpoints": {
