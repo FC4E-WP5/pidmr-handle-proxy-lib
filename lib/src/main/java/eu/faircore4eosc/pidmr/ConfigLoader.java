@@ -28,6 +28,7 @@ public class ConfigLoader {
 
     public static class Config {
         private String hdlServerConfigPath;
+        private String influxdbConfigFile;
         private String providersFilePath;
         private String providersBackupFilePath;
         private Map<String, String> endpoints;
@@ -36,6 +37,10 @@ public class ConfigLoader {
 
         public String getHdlServerConfigPath() {
             return hdlServerConfigPath;
+        }
+
+        public String getInfluxdbConfigFile() {
+            return influxdbConfigFile;
         }
 
         public String getProvidersFilePath() {

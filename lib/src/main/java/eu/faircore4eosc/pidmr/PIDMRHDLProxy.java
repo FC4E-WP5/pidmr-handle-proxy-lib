@@ -14,8 +14,15 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,6 +37,11 @@ import net.handle.apps.servlet_proxy.HDLServletRequest.ResponseType;
 import net.handle.hdllib.*;
 import net.handle.server.Main;
 import net.handle.server.servletcontainer.HandleServerInterface;
+
+import org.influxdb.InfluxDB;
+import org.influxdb.InfluxDBFactory;
+import org.influxdb.dto.Point;
+import org.influxdb.dto.Query;
 
 public class PIDMRHDLProxy extends HDLProxy {
     public static RequestProcessor resolver = null;
@@ -359,7 +371,6 @@ public class PIDMRHDLProxy extends HDLProxy {
             addr = hdl.getRemoteAddr();
         } catch (Throwable t) {
         }
-
         try {
             URL apiUrl = new URL(redirectUrl);
             HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
@@ -375,17 +386,81 @@ public class PIDMRHDLProxy extends HDLProxy {
             } else {
                 handleHttpError(responseCode, resp);
             }
-
             logPIDMRAccess(pidType, pid, display, responseCode, addr, AbstractMessage.RC_SUCCESS, hdl.getResponseTime());
+            logIntoInfluxDB(pidType, pid, display, responseCode);
         } catch (IOException e) {
             handleHttpError(500, resp);
             logPIDMRAccess(pidType, pid, display, 500, addr, AbstractMessage.RC_ERROR, hdl.getResponseTime());
+            logIntoInfluxDB(pidType, pid, display, 500);
         }
     }
+
+    public void logIntoInfluxDB(String pidType, String pid, String display, Integer status) {
+        String influxdbConfigFile = config.getInfluxdbConfigFile();
+        StreamTable configTable = new StreamTable();
+        File serverDir = new File(HSG.DEFAULT_CONFIG_SUBDIR_NAME);
+        try {
+            File configFile = new File(serverDir, influxdbConfigFile);
+            if (configFile.exists()) {
+                try {
+                    configTable.readFromFile(configFile);
+                    if (configTable.containsKey("influxdb_config")) {
+                        Map<String, Object> influxdbConfig = (Map<String, Object>) configTable.get("influxdb_config");
+                        String bindAddress = (String) influxdbConfig.get("bind_address");
+                        String bindPort = (String) influxdbConfig.get("bind_port");
+                        String username = (String) influxdbConfig.get("username");
+                        String password = (String) influxdbConfig.get("password");
+                        String databaseName = (String) influxdbConfig.get("databaseName");
+                        String measurement = (String) influxdbConfig.get("measurement");
+                        String num_threads = (String) influxdbConfig.get("num_threads");
+                        int numThreads = Integer.parseInt(num_threads);
+                        String url = bindAddress + ":" + bindPort;
+                        InfluxDB influxDB = InfluxDBFactory.connect(url, username, password);
+                        influxDB.setDatabase(databaseName);
+                        try {
+                            influxDB.enableBatch(10, 200, TimeUnit.MILLISECONDS);
+                            Point point = Point.measurement(measurement)
+                                    .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+                                    .addField("pidType", pidType)
+                                    .addField("pid", pid)
+                                    .addField("display", display)
+                                    .addField("status", status)
+                                    .build();
+                            try {
+                                ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+                            } catch (NumberFormatException e) {
+                                System.err.println("Invalid number format for num_threads: " + num_threads);
+                            }
+                            ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+                            CompletableFuture.runAsync(() -> {
+                                try {
+                                    influxDB.write(point);
+                                } catch (Exception e) {
+                                    System.err.println("Write failed: " + e.getMessage());
+                                }
+                            }, executor).thenRun(() -> {
+                            });
+                            executor.shutdown();
+                        } catch (Exception e) {
+                            logIntoInfluxDB(pidType, pid, display, status);
+                            System.err.println("Error transmiting the data: " + e.getMessage());
+                        } finally {
+                            influxDB.close();
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error reading configuration: " + e);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+            System.err.println("Error loading configuration: " + e);
+        }
+    }
+
     private void handleHttpError(int responseCode, HttpServletResponse resp) throws IOException {
         resp.setCharacterEncoding("UTF-8");
         resp.setContentType("application/json");
-
         switch (responseCode) {
             case 400:
                 resp.getWriter().println("{\"400\": \"Bad Request\"}");

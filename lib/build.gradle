@@ -13,12 +13,14 @@ repositories {
 ext {
     handleVersion = '9.3.1'
     servletApiVersion = '3.1.0'
+    influxdbVersion = '2.24'
     javaVersion = 8
 }
 
 dependencies {
     implementation "net.handle:handle:$handleVersion"
     implementation "javax.servlet:javax.servlet-api:$servletApiVersion"
+    implementation "org.influxdb:influxdb-java:$influxdbVersion"
 }
 
 java {
@@ -42,7 +44,29 @@ tasks.jar {
     archiveVersion.set(version)
 }
 
+task influxdb(type: Jar) {
+    archiveBaseName.set("influxdb")
+    archiveVersion.set(influxdbVersion)
+
+    dependsOn compileJava
+
+    from(sourceSets.main.output) {
+        exclude 'eu/**'
+    }
+
+    from {
+        configurations.runtimeClasspath.findAll {
+            !(it.name.contains("handle") || it.name.contains("cnri") || it.name.contains("servlet") || it.name.contains("pidmr"))
+        }.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.build.dependsOn influxdb
+
 tasks.withType(JavaCompile) {
+    options.compilerArgs << "-Xlint:deprecation"
     options.encoding = 'UTF-8'
 }
 
