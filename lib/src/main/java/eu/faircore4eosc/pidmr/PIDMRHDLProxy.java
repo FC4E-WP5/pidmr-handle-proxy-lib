@@ -387,15 +387,15 @@ public class PIDMRHDLProxy extends HDLProxy {
                 handleHttpError(responseCode, resp);
             }
             logPIDMRAccess(pidType, pid, display, responseCode, addr, AbstractMessage.RC_SUCCESS, hdl.getResponseTime());
-            logIntoInfluxDB(pidType, pid, display, responseCode);
+            logIntoInfluxDB(pidType, pid, display, hdl.getResponseTime() + "ms", responseCode);
         } catch (IOException e) {
             handleHttpError(500, resp);
             logPIDMRAccess(pidType, pid, display, 500, addr, AbstractMessage.RC_ERROR, hdl.getResponseTime());
-            logIntoInfluxDB(pidType, pid, display, 500);
+            logIntoInfluxDB(pidType, pid, display, hdl.getResponseTime() + "ms", 500);
         }
     }
 
-    public void logIntoInfluxDB(String pidType, String pid, String display, Integer status) {
+    public void logIntoInfluxDB(String pidType, String pid, String display, String responseTime, Integer status) {
         String influxdbConfigFile = config.getInfluxdbConfigFile();
         StreamTable configTable = new StreamTable();
         File serverDir = new File(HSG.DEFAULT_CONFIG_SUBDIR_NAME);
@@ -425,6 +425,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                                     .addField("pid", pid)
                                     .addField("display", display)
                                     .addField("status", status)
+                                    .addField("responseTime", responseTime)
                                     .build();
                             try {
                                 ExecutorService executor = Executors.newFixedThreadPool(numThreads);
@@ -442,7 +443,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                             });
                             executor.shutdown();
                         } catch (Exception e) {
-                            logIntoInfluxDB(pidType, pid, display, status);
+                            logIntoInfluxDB(pidType, pid, display, responseTime, status);
                             System.err.println("Error transmiting the data: " + e.getMessage());
                         } finally {
                             influxDB.close();
