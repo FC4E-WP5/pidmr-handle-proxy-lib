@@ -43,6 +43,9 @@ import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Point;
 import org.influxdb.dto.Query;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class PIDMRHDLProxy extends HDLProxy {
     public static RequestProcessor resolver = null;
     private boolean matchFound = false;
@@ -419,8 +422,10 @@ public class PIDMRHDLProxy extends HDLProxy {
                         influxDB.setDatabase(databaseName);
                         try {
                             influxDB.enableBatch(10, 200, TimeUnit.MILLISECONDS);
+                            System.out.println("After formatting: " + getLogDateTime());
                             Point point = Point.measurement(measurement)
                                     .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+                                    .addField("date", getLogDateTime())
                                     .addField("pidType", pidType)
                                     .addField("pid", pid)
                                     .addField("display", display)
@@ -459,6 +464,13 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
+    private String getLogDateTime() {
+        LocalDateTime localDateTime = LocalDateTime.now();
+        DateTimeFormatter dateTimeFormat = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+        String formattedDateTime = localDateTime.format(dateTimeFormat);
+        return formattedDateTime;
+    }
+    
     private void handleHttpError(int responseCode, HttpServletResponse resp) throws IOException {
         resp.setCharacterEncoding("UTF-8");
         resp.setContentType("application/json");
