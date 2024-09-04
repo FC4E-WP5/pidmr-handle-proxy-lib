@@ -86,6 +86,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         ISNI,
         ISBN,
         BIBCODE,
+        DBGAP,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -125,6 +126,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return ISBN;
                 case "Bibcode":
                     return BIBCODE;
+                case "dbGaP":
+                    return DBGAP;
                 default:
                     return UNKNOWN;
             }
@@ -271,6 +274,9 @@ public class PIDMRHDLProxy extends HDLProxy {
                 break;
             case BIBCODE:
                 handleBIBCODE(pidType, pid, display, hdl, resp);
+                break;
+            case DBGAP:
+                handleDBGAP(pidType, pid, display, hdl, resp);
                 break;
             default:
                 noPidType(resp);
@@ -422,7 +428,6 @@ public class PIDMRHDLProxy extends HDLProxy {
                         influxDB.setDatabase(databaseName);
                         try {
                             influxDB.enableBatch(10, 200, TimeUnit.MILLISECONDS);
-                            System.out.println("After formatting: " + getLogDateTime());
                             Point point = Point.measurement(measurement)
                                     .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS)
                                     .addField("date", getLogDateTime())
@@ -883,7 +888,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    private void handleRedirect(String pidType, String pid, String display, String landingPageEndpoint, String metadataEndpoint, String resourceEndpoint, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+    private void handleRedirect(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp, String landingPageEndpoint, String metadataEndpoint, String resourceEndpoint) throws IOException {
         String redirectUrl = null;
         switch (display) {
             case RESOLVING_MODE_LANDINGPAGE:
@@ -910,7 +915,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                     } else if (pidType.equals("swh")) {
                         redirectUrl = resourceEndpoint + pid + "/raw/";
                     } else if (pidType.equals("Bibcode")) {
-                        redirectUrl = resourceEndpoint + pid + "/PUB_PDF/";
+                        redirectUrl = resourceEndpoint + pid + "/ADS_PDF/";
                     } else if (pidType.equals("urn:nbn:de")) {
                         redirectUrl = fetchUrnDeResourceUrl(pid, metadataEndpoint);
                     }
@@ -922,84 +927,66 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
     private void handleZbl(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("Zbl_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Zbl_METADATA_ENDPOINT"), null, hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Zbl_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Zbl_METADATA_ENDPOINT"), null);
     }
 
     private void handleSwmath(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("Swmath_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Swmath_METADATA_ENDPOINT"), null, hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Swmath_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Swmath_METADATA_ENDPOINT"), null);
     }
 
     private void handleZbmath(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("Zbmath_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Zbmath_METADATA_ENDPOINT"), null, hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Zbmath_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Zbmath_METADATA_ENDPOINT"), null);
     }
 
     private void handleOrcid(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("Orcid_LANDINGPAGE_ENDPOINT"), null, null, hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Orcid_LANDINGPAGE_ENDPOINT"), null, null);
     }
 
     private void handleUrnFi(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("UrnFi_LANDINGPAGE_ENDPOINT"), null, null, hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("UrnFi_LANDINGPAGE_ENDPOINT"), null, null);
     }
 
     private void handleArxiv(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("Arxiv_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Arxiv_METADATA_ENDPOINT"), config.getEndpoints().get("Arxiv_RESOURCE_ENDPOINT"), hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Arxiv_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Arxiv_METADATA_ENDPOINT"), config.getEndpoints().get("Arxiv_RESOURCE_ENDPOINT"));
     }
 
     private void handle21(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("Hdl_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("HDl_METADATA_ENDPOINT"), null, hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Hdl_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("HDl_METADATA_ENDPOINT"), null);
     }
 
     private void handleSwh(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("Swh_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Swh_METADATA_ENDPOINT"), config.getEndpoints().get("Swh_RESOURCE_ENDPOINT"), hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Swh_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Swh_METADATA_ENDPOINT"), config.getEndpoints().get("Swh_RESOURCE_ENDPOINT"));
     }
 
     private void handleRor(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("ROR_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ROR_METADATA_ENDPOINT"), null, hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("ROR_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ROR_METADATA_ENDPOINT"), null);
     }
 
     private void handleISLRN(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("ISLRN_LANDINGPAGE_ENDPOINT"), null, null, hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("ISLRN_LANDINGPAGE_ENDPOINT"), null, null);
     }
 
     private void handleISNI(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("ISNI_LANDINGPAGE_ENDPOINT"), null, null, hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("ISNI_LANDINGPAGE_ENDPOINT"), null, null);
     }
 
     private void handleISBN(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("ISBN_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ISBN_METADATA_ENDPOINT"), null, hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("ISBN_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ISBN_METADATA_ENDPOINT"), null);
     }
 
     private void handleBIBCODE(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("BIBCODE_LANDINGPAGE_ENDPOINT"), null, config.getEndpoints().get("BIBCODE_RESOURCE_ENDPOINT"), hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("BIBCODE_LANDINGPAGE_ENDPOINT"), null, config.getEndpoints().get("BIBCODE_RESOURCE_ENDPOINT"));
     }
 
     private void handleArk(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("ARK_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ARK_METADATA_ENDPOINT"), null, hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("ARK_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ARK_METADATA_ENDPOINT"), null);
     }
 
     private void handleUrnDe(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, config.getEndpoints().get("UrnDe_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("UrnDe_METADATA_ENDPOINT"), config.getEndpoints().get("UrnDe_METADATA_ENDPOINT"), hdl, resp);
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("UrnDe_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("UrnDe_METADATA_ENDPOINT"), config.getEndpoints().get("UrnDe_METADATA_ENDPOINT"));
+    }
+
+    private void handleDBGAP(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("DBGAP_LANDINGPAGE_ENDPOINT"), null, null);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
