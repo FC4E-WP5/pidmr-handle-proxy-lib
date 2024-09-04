@@ -74,6 +74,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         ARK,
         URN_NBN_DE,
         URN_NBN_FI,
+        URN_NBN_NL,
         DOI,
         SWH,
         ZENODO,
@@ -102,6 +103,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return URN_NBN_DE;
                 case "urn:nbn:fi":
                     return URN_NBN_FI;
+                case "urn:nbn:nl":
+                    return URN_NBN_NL;
                 case "doi":
                     return DOI;
                 case "swh":
@@ -231,6 +234,9 @@ public class PIDMRHDLProxy extends HDLProxy {
                 break;
             case URN_NBN_FI:
                 handleUrnFi(pidType, pid, display, hdl, resp);
+                break;
+            case URN_NBN_NL:
+                handleUrnNl(pidType, pid, display, hdl, resp);
                 break;
             case DOI:
                 handleDoi(pidType, pid, display, hdl, resp);
@@ -944,6 +950,10 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void handleUrnFi(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("UrnFi_LANDINGPAGE_ENDPOINT"), null, null);
+    }
+
+    private void handleUrnNl(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("UrnNl_LANDINGPAGE_ENDPOINT"), null, null);
     }
 
     private void handleArxiv(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
