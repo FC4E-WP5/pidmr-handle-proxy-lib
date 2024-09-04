@@ -33,6 +33,7 @@
     "UrnDe_METADATA_ENDPOINT": "https://nbn-resolving.org/json/",
     "UrnDe_RESOURCE_ENDPOINT": "https://nbn-resolving.org/json/",
     "UrnFi_LANDINGPAGE_ENDPOINT": "https://urn.fi/",
+    "UrnNl_LANDINGPAGE_ENDPOINT": "https://www.persistent-identifier.nl/",
     "Zbmath_LANDINGPAGE_ENDPOINT": "https://zbmath.org/authors/",
     "Zbmath_METADATA_ENDPOINT": "https://api.zbmath.org/v1/author/",
     "Zbl_LANDINGPAGE_ENDPOINT": "https://zbmath.org/",
