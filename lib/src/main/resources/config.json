@@ -22,6 +22,7 @@
     "ISLRN_LANDINGPAGE_ENDPOINT": "https://www.islrn.org/resources/",
     "ISNI_LANDINGPAGE_ENDPOINT": "https://isni.oclc.org/cbs/xslt/DB=1.2//CMD?ACT=SRCH&IKT=8006&TRM=ISN%3A",
     "Orcid_LANDINGPAGE_ENDPOINT": "https://orcid.org/",
+    "PRIDE_LANDINGPAGE_ENDPOINT": "https://www.ebi.ac.uk/pride/archive/projects/",
     "ROR_LANDINGPAGE_ENDPOINT": "https://ror.org/",
     "ROR_METADATA_ENDPOINT": "https://api.ror.org/v1/organizations/",
     "Swh_LANDINGPAGE_ENDPOINT": "https://archive.softwareheritage.org/",
