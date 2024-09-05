@@ -88,6 +88,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         ISBN,
         BIBCODE,
         DBGAP,
+        PRIDE,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -131,6 +132,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return BIBCODE;
                 case "dbGaP":
                     return DBGAP;
+                case "PRIDE":
+                    return PRIDE;
                 default:
                     return UNKNOWN;
             }
@@ -283,6 +286,9 @@ public class PIDMRHDLProxy extends HDLProxy {
                 break;
             case DBGAP:
                 handleDBGAP(pidType, pid, display, hdl, resp);
+                break;
+            case PRIDE:
+                handlePRIDE(pidType, pid, display, hdl, resp);
                 break;
             default:
                 noPidType(resp);
@@ -998,5 +1004,9 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void handleDBGAP(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("DBGAP_LANDINGPAGE_ENDPOINT"), null, null);
+    }
+
+    private void handlePRIDE(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("PRIDE_LANDINGPAGE_ENDPOINT"), null, null);
     }
 }
