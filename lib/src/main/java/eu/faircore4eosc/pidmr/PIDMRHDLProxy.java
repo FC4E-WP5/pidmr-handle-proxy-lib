@@ -89,6 +89,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         BIBCODE,
         DBGAP,
         PRIDE,
+        PUBMED,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -134,6 +135,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return DBGAP;
                 case "PRIDE":
                     return PRIDE;
+                case "PubMed":
+                    return PUBMED;
                 default:
                     return UNKNOWN;
             }
@@ -289,6 +292,9 @@ public class PIDMRHDLProxy extends HDLProxy {
                 break;
             case PRIDE:
                 handlePRIDE(pidType, pid, display, hdl, resp);
+                break;
+            case PUBMED:
+                handlePUBMED(pidType, pid, display, hdl, resp);
                 break;
             default:
                 noPidType(resp);
@@ -1008,5 +1014,9 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void handlePRIDE(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("PRIDE_LANDINGPAGE_ENDPOINT"), null, null);
+    }
+
+    private void handlePUBMED(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("PubMed_LANDINGPAGE_ENDPOINT"), null, null);
     }
 }
