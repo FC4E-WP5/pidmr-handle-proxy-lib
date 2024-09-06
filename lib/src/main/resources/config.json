@@ -11,6 +11,7 @@
     "Arxiv_RESOURCE_ENDPOINT": "https://arxiv.org/pdf/",
     "BIBCODE_LANDINGPAGE_ENDPOINT": "https://ui.adsabs.harvard.edu/abs/",
     "BIBCODE_RESOURCE_ENDPOINT": "https://ui.adsabs.harvard.edu/link_gateway/",
+    "BioSample_LANDINGPAGE_ENDPOINT": "https://www.ncbi.nlm.nih.gov/biosample/",
     "CROSSREF_METADATA_ENDPOINT": "https://api.crossref.org/works/",
     "DATACITE_METADATA_ENDPOINT": "https://api.datacite.org/dois/",
     "DBGAP_LANDINGPAGE_ENDPOINT": "https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=",
