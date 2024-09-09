@@ -91,6 +91,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         PRIDE,
         PUBMED,
         BIOSAMPLE,
+        EAN13,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -140,6 +141,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return PUBMED;
                 case "BioSample":
                     return BIOSAMPLE;
+                case "EAN13":
+                    return EAN13;
                 default:
                     return UNKNOWN;
             }
@@ -301,6 +304,9 @@ public class PIDMRHDLProxy extends HDLProxy {
                 break;
             case BIOSAMPLE:
                 handleBIOSAMPLE(pidType, pid, display, hdl, resp);
+                break;
+            case EAN13:
+                handleEAN13(pidType, pid, display, hdl, resp);
                 break;
             default:
                 noPidType(resp);
@@ -1028,5 +1034,9 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void handleBIOSAMPLE(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("BioSample_LANDINGPAGE_ENDPOINT"), null, null);
+    }
+
+    private void handleEAN13(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("EAN13_LANDINGPAGE_ENDPOINT"), null, null);
     }
 }
