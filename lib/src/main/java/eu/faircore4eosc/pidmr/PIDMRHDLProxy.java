@@ -92,6 +92,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         PUBMED,
         BIOSAMPLE,
         EAN13,
+        RAID,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -143,6 +144,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return BIOSAMPLE;
                 case "EAN13":
                     return EAN13;
+                case "RAiD":
+                    return RAID;
                 default:
                     return UNKNOWN;
             }
@@ -307,6 +310,9 @@ public class PIDMRHDLProxy extends HDLProxy {
                 break;
             case EAN13:
                 handleEAN13(pidType, pid, display, hdl, resp);
+                break;
+            case RAID:
+                handleRAID(pidType, pid, display, hdl, resp);
                 break;
             default:
                 noPidType(resp);
@@ -575,7 +581,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         JsonElement dataciteResourceRedirectUrl;
         String cnType = null;
 
-        pid = checkForCanonicalDoiFormat(pid);
+        pid = checkForCanonicalFormat(pid);
         pid = pid.replace(DOI_PREFIX, "");
 
         if (display.contains("cn_")) {
@@ -688,8 +694,8 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    private String checkForCanonicalDoiFormat(String pid) {
-        Pattern pattern = Pattern.compile("^((https?://)?doi.org/).+$", Pattern.CASE_INSENSITIVE);
+    private String checkForCanonicalFormat(String pid) {
+        Pattern pattern = Pattern.compile("^((https?://)?[^/]+/).+$", Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(pid);
         boolean matchFound = matcher.find();
         if (matchFound) {
@@ -1038,5 +1044,9 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void handleEAN13(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("EAN13_LANDINGPAGE_ENDPOINT"), null, null);
+    }
+
+    private void handleRAID(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        handleRedirect(pidType, checkForCanonicalFormat(pid), display, hdl, resp, config.getEndpoints().get("RAiD_LANDINGPAGE_ENDPOINT"), null, null);
     }
 }

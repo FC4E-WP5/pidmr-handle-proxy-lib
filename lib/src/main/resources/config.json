@@ -26,6 +26,7 @@
     "Orcid_LANDINGPAGE_ENDPOINT": "https://orcid.org/",
     "PRIDE_LANDINGPAGE_ENDPOINT": "https://www.ebi.ac.uk/pride/archive/projects/",
     "PubMed_LANDINGPAGE_ENDPOINT": "https://pubmed.ncbi.nlm.nih.gov/",
+    "RAiD_LANDINGPAGE_ENDPOINT": "https://raid.org/",
     "ROR_LANDINGPAGE_ENDPOINT": "https://ror.org/",
     "ROR_METADATA_ENDPOINT": "https://api.ror.org/v1/organizations/",
     "Swh_LANDINGPAGE_ENDPOINT": "https://archive.softwareheritage.org/",
