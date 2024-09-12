@@ -17,7 +17,6 @@ deploy:
   script:
     - ./gradlew build
     - 'curl -s --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file lib/build/libs/PIDMRHDLProxy-0.0.1-SNAPSHOT.jar "https://gitlab-ce.gwdg.de/api/v4/projects/24967/packages/maven/eu/faircore4eosc/lib/0.0.1-SNAPSHOT/pidmrhdlproxy-0.1.jar"'
-    - 'curl -s --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file lib/build/libs/PIDMRHDLProxy-0.0.1-SNAPSHOT.jar "https://gitlab-ce.gwdg.de/api/v4/projects/24746/packages/maven/eu/faircore4eosc/lib/0.0.1-SNAPSHOT/pidmrhdlproxy-0.1.jar"'
     - scp lib/build/libs/PIDMRHDLProxy-0.0.1-SNAPSHOT.jar lib/build/libs/influxdb-2.24.jar $SSH_LOGIN:/home/cloud
     - ssh $SSH_LOGIN "$PIDMR_PROXY_RESTART_SCRIPT"
 
