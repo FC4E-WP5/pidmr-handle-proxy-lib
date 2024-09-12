@@ -16,7 +16,8 @@ deploy:
   stage: deploy
   script:
     - ./gradlew build
-    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file lib/build/libs/PIDMRHDLProxy-0.0.1-SNAPSHOT.jar "https://gitlab-ce.gwdg.de/api/v4/projects/24967/packages/generic/pidmr/pidmrhdlproxy-0.1.jar"'
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --header "Content-Type: application/java-archive" --upload-file lib/build/libs/PIDMRHDLProxy-0.0.1-SNAPSHOT.jar "https://gitlab-ce.gwdg.de/api/v4/projects/24967/packages/generic/pidmr/pidmrhdlproxy-0.1.jar"'
+    - mvn deploy --settings .maven/settings.xml
     - scp lib/build/libs/PIDMRHDLProxy-0.0.1-SNAPSHOT.jar lib/build/libs/influxdb-2.24.jar $SSH_LOGIN:/home/cloud
     - ssh $SSH_LOGIN "$PIDMR_PROXY_RESTART_SCRIPT"
 
