@@ -72,6 +72,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         EPIC_OLD,
         ARXIV,
         ARK,
+        URN_NBN_CH,
         URN_NBN_DE,
         URN_NBN_FI,
         URN_NBN_NL,
@@ -104,6 +105,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return ARXIV;
                 case "ark":
                     return ARK;
+                case "urn:nbn:ch":
+                    return URN_NBN_CH;
                 case "urn:nbn:de":
                     return URN_NBN_DE;
                 case "urn:nbn:fi":
@@ -244,6 +247,9 @@ public class PIDMRHDLProxy extends HDLProxy {
             case ARK:
                 handleArk(pidType, pid, display, hdl, resp);
                 break;
+            case URN_NBN_CH:
+                handleUrnCh(pidType, pid, display, hdl, resp);
+                break;
             case URN_NBN_DE:
                 handleUrnDe(pidType, pid, display, hdl, resp);
                 break;
@@ -382,7 +388,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         return matchFound = matcher.find();
     }
 
-    private String fetchUrnDeResourceUrl(String pid, String metadataEndpoint) {
+    private String fetchUrnDeChResourceUrl(String pid, String metadataEndpoint) {
         String urnMetadataURL = metadataEndpoint + pid;
         try {
             URL apiUrl = new URL(urnMetadataURL);
@@ -952,8 +958,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                         redirectUrl = resourceEndpoint + pid + "/raw/";
                     } else if (pidType.equals("Bibcode")) {
                         redirectUrl = resourceEndpoint + pid + "/ADS_PDF/";
-                    } else if (pidType.equals("urn:nbn:de")) {
-                        redirectUrl = fetchUrnDeResourceUrl(pid, metadataEndpoint);
+                    } else if (pidType.equals("urn:nbn:de") || pidType.equals("urn:nbn:ch")) {
+                        redirectUrl = fetchUrnDeChResourceUrl(pid, metadataEndpoint);
                     }
                 }
                 break;
@@ -1024,6 +1030,10 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void handleUrnDe(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("UrnDe_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("UrnDe_METADATA_ENDPOINT"), config.getEndpoints().get("UrnDe_METADATA_ENDPOINT"));
+    }
+
+    private void handleUrnCh(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("UrnCh_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("UrnCh_METADATA_ENDPOINT"), config.getEndpoints().get("UrnCh_METADATA_ENDPOINT"));
     }
 
     private void handleDBGAP(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
