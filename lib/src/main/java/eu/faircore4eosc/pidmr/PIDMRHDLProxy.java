@@ -438,15 +438,15 @@ public class PIDMRHDLProxy extends HDLProxy {
                 handleHttpError(responseCode, resp);
             }
             logPIDMRAccess(pidType, pid, display, responseCode, addr, AbstractMessage.RC_SUCCESS, hdl.getResponseTime());
-            logIntoInfluxDB(pidType, pid, display, hdl.getResponseTime() + "ms", responseCode);
+            logIntoInfluxDB(pidType, pid, display, redirectUrl, hdl.getResponseTime() + "ms", responseCode);
         } catch (IOException e) {
             handleHttpError(500, resp);
             logPIDMRAccess(pidType, pid, display, 500, addr, AbstractMessage.RC_ERROR, hdl.getResponseTime());
-            logIntoInfluxDB(pidType, pid, display, hdl.getResponseTime() + "ms", 500);
+            logIntoInfluxDB(pidType, pid, display, redirectUrl,hdl.getResponseTime() + "ms", 500);
         }
     }
 
-    public void logIntoInfluxDB(String pidType, String pid, String display, String responseTime, Integer status) {
+    public void logIntoInfluxDB(String pidType, String pid, String display, String redirectUrl, String responseTime, Integer status) {
         String influxdbConfigFile = config.getInfluxdbConfigFile();
         StreamTable configTable = new StreamTable();
         File serverDir = new File(HSG.DEFAULT_CONFIG_SUBDIR_NAME);
@@ -471,8 +471,9 @@ public class PIDMRHDLProxy extends HDLProxy {
                         try {
                             influxDB.enableBatch(10, 200, TimeUnit.MILLISECONDS);
                             Point point = Point.measurement(measurement)
-                                    .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+                                    .time(System.currentTimeMillis() / 1000L, TimeUnit.MILLISECONDS)
                                     .addField("date", getLogDateTime())
+                                    .addField("endpoint", redirectUrl)
                                     .addField("pidType", pidType)
                                     .addField("pid", pid)
                                     .addField("display", display)
@@ -495,8 +496,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                             });
                             executor.shutdown();
                         } catch (Exception e) {
-                            logIntoInfluxDB(pidType, pid, display, responseTime, status);
-                            System.err.println("Error transmiting the data: " + e.getMessage());
+                            logIntoInfluxDB(pidType, pid, display, redirectUrl, responseTime, status);
+                            System.err.println("Error transmiting the data to influxdb: " + e.getMessage());
                         } finally {
                             influxDB.close();
                         }
@@ -944,7 +945,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                     } else if (pidType.equals("swh")) {
                         redirectUrl = metadataEndpoint + pid + "?format=json";
                     } else if (pidType.equals("ark")) {
-                        redirectUrl = metadataEndpoint + pid + "/?";
+                        redirectUrl = metadataEndpoint + pid + "/%3F";
                     } else {
                         redirectUrl = metadataEndpoint + pid;
                     }
