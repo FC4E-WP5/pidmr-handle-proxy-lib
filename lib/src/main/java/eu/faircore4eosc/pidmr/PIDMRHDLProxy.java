@@ -94,6 +94,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         BIOSAMPLE,
         EAN13,
         RAID,
+        GENOME_ID,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -149,6 +150,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return EAN13;
                 case "RAiD":
                     return RAID;
+                case "Genome_ID":
+                    return GENOME_ID;
                 default:
                     return UNKNOWN;
             }
@@ -319,6 +322,9 @@ public class PIDMRHDLProxy extends HDLProxy {
                 break;
             case RAID:
                 handleRAID(pidType, pid, display, hdl, resp);
+                break;
+            case GENOME_ID:
+                handleGENOME_ID(pidType, pid, display, hdl, resp);
                 break;
             default:
                 noPidType(resp);
@@ -1059,5 +1065,9 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void handleRAID(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         handleRedirect(pidType, checkForCanonicalFormat(pid), display, hdl, resp, config.getEndpoints().get("RAiD_LANDINGPAGE_ENDPOINT"), null, null);
+    }
+
+    private void handleGENOME_ID(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        handleRedirect(pidType, checkForCanonicalFormat(pid), display, hdl, resp, config.getEndpoints().get("GENOME_ID_LANDINGPAGE_ENDPOINT"), null, null);
     }
 }
