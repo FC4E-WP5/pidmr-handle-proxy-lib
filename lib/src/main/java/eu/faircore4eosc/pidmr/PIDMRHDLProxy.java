@@ -51,7 +51,6 @@ public class PIDMRHDLProxy extends HDLProxy {
     private boolean matchFound = false;
     private String display = null;
     private String pid = null;
-
     private final String RESOLVING_MODE_LANDINGPAGE = "landingpage";
     private final String RESOLVING_MODE_METADATA = "metadata";
     private final String RESOLVING_MODE_RESOURCE = "resource";
@@ -154,6 +153,69 @@ public class PIDMRHDLProxy extends HDLProxy {
             }
         }
     }
+    
+    public enum EndpointType {
+        ZBL("Zbl_LANDINGPAGE_ENDPOINT", "Zbl_METADATA_ENDPOINT"),
+        SWMATH("Swmath_LANDINGPAGE_ENDPOINT", "Swmath_METADATA_ENDPOINT"),
+        ZBMATH("Zbmath_LANDINGPAGE_ENDPOINT", "Zbmath_METADATA_ENDPOINT"),
+        ORCID("Orcid_LANDINGPAGE_ENDPOINT", null),
+        URNFI("UrnFi_LANDINGPAGE_ENDPOINT", null),
+        URNNL("UrnNl_LANDINGPAGE_ENDPOINT", null),
+        ARXIV("Arxiv_LANDINGPAGE_ENDPOINT", "Arxiv_METADATA_ENDPOINT", "Arxiv_RESOURCE_ENDPOINT"),
+        HANDLE21("Hdl_LANDINGPAGE_ENDPOINT", "HDl_METADATA_ENDPOINT"),
+        SWH("Swh_LANDINGPAGE_ENDPOINT", "Swh_METADATA_ENDPOINT", "Swh_RESOURCE_ENDPOINT"),
+        ROR("ROR_LANDINGPAGE_ENDPOINT", "ROR_METADATA_ENDPOINT"),
+        ISLRN("ISLRN_LANDINGPAGE_ENDPOINT", null),
+        ISNI("ISNI_LANDINGPAGE_ENDPOINT", null),
+        ISBN("ISBN_LANDINGPAGE_ENDPOINT", "ISBN_METADATA_ENDPOINT"),
+        BIBCODE("BIBCODE_LANDINGPAGE_ENDPOINT", null, "BIBCODE_RESOURCE_ENDPOINT"),
+        ARK("ARK_LANDINGPAGE_ENDPOINT", "ARK_METADATA_ENDPOINT"),
+        URNDE("UrnDe_LANDINGPAGE_ENDPOINT", "UrnDe_METADATA_ENDPOINT", "UrnDe_RESOURCE_ENDPOINT"),
+        URNCH("UrnCh_LANDINGPAGE_ENDPOINT", "UrnCh_METADATA_ENDPOINT", "UrnCh_RESOURCE_ENDPOINT"),
+        DBGAP("DBGAP_LANDINGPAGE_ENDPOINT", null),
+        PRIDE("PRIDE_LANDINGPAGE_ENDPOINT", null),
+        PUBMED("PubMed_LANDINGPAGE_ENDPOINT", null),
+        BIOSAMPLE("BioSample_LANDINGPAGE_ENDPOINT", null),
+        EAN13("EAN13_LANDINGPAGE_ENDPOINT", null),
+        RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
+            @Override
+            public String preprocessPid(String pid) {
+                return checkForCanonicalFormat(pid); // Falls eine spezielle Verarbeitung für RAID nötig ist
+            }
+        };
+
+        private final String landingPageEndpoint;
+        private final String metadataEndpoint;
+        private final String resourceEndpoint;
+
+        // Konstruktor für Endpoints ohne Resource-Endpoint
+        EndpointType(String landingPageEndpoint, String metadataEndpoint) {
+            this(landingPageEndpoint, metadataEndpoint, null);
+        }
+
+        // Konstruktor für Endpoints mit Resource-Endpoint
+        EndpointType(String landingPageEndpoint, String metadataEndpoint, String resourceEndpoint) {
+            this.landingPageEndpoint = landingPageEndpoint;
+            this.metadataEndpoint = metadataEndpoint;
+            this.resourceEndpoint = resourceEndpoint;
+        }
+
+        public String getLandingPageEndpoint() {
+            return landingPageEndpoint;
+        }
+
+        public String getMetadataEndpoint() {
+            return metadataEndpoint;
+        }
+
+        public String getResourceEndpoint() {
+            return resourceEndpoint;
+        }
+
+        public String preprocessPid(String pid) {
+            return pid;
+        }
+    }
 
     private static final String DOI_PREFIX = "doi:";
     private static final String CROSSREF = "crossref";
@@ -239,25 +301,25 @@ public class PIDMRHDLProxy extends HDLProxy {
         PidType type = PidType.fromString(pidType);
         switch (type) {
             case TYPE_21:
-                handle21(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.HANDLE21, pidType, pid, display, hdl, resp);
                 break;
             case ARXIV:
-                handleArxiv(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.ARXIV, pidType, pid, display, hdl, resp);
                 break;
             case ARK:
-                handleArk(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.ARK, pidType, pid, display, hdl, resp);
                 break;
             case URN_NBN_CH:
-                handleUrnCh(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.URNCH, pidType, pid, display, hdl, resp);
                 break;
             case URN_NBN_DE:
-                handleUrnDe(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.URNDE, pidType, pid, display, hdl, resp);
                 break;
             case URN_NBN_FI:
-                handleUrnFi(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.URNFI, pidType, pid, display, hdl, resp);
                 break;
             case URN_NBN_NL:
-                handleUrnNl(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.URNNL, pidType, pid, display, hdl, resp);
                 break;
             case DOI:
                 handleDoi(pidType, pid, display, hdl, resp);
@@ -267,58 +329,58 @@ public class PIDMRHDLProxy extends HDLProxy {
                 String swhType = swhPidParts[2];
                 String swhHash = swhPidParts[3];
                 if (display.equals(RESOLVING_MODE_RESOURCE)) {
-                    handleSwh(pidType, swhHash, display, hdl, resp);
+                    handleRequest(EndpointType.SWH, pidType, swhHash, display, hdl, resp);
                 } else {
-                    handleSwh(pidType, pid, display, hdl, resp);
+                    handleRequest(EndpointType.SWH, pidType, pid, display, hdl, resp);
                 }
                 break;
             case ZENODO:
                 handleZenodo(pidType, pid, display, hdl, resp);
                 break;
             case ORCID:
-                handleOrcid(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.ORCID, pidType, pid, display, hdl, resp);
                 break;
             case ZBMATH:
-                handleZbmath(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.ZBMATH, pidType, pid, display, hdl, resp);
                 break;
             case SWMATH:
-                handleSwmath(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.SWMATH, pidType, pid, display, hdl, resp);
                 break;
             case ZBL:
-                handleZbl(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.ZBL, pidType, pid, display, hdl, resp);
                 break;
             case ROR:
-                handleRor(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.ROR, pidType, pid, display, hdl, resp);
                 break;
             case ISLRN:
-                handleISLRN(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.ISLRN, pidType, pid, display, hdl, resp);
                 break;
             case ISNI:
-                handleISNI(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.ISNI, pidType, pid, display, hdl, resp);
                 break;
             case ISBN:
-                handleISBN(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.ISBN, pidType, pid, display, hdl, resp);
                 break;
             case BIBCODE:
-                handleBIBCODE(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.BIBCODE, pidType, pid, display, hdl, resp);
                 break;
             case DBGAP:
-                handleDBGAP(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.DBGAP, pidType, pid, display, hdl, resp);
                 break;
             case PRIDE:
-                handlePRIDE(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.PRIDE, pidType, pid, display, hdl, resp);
                 break;
             case PUBMED:
-                handlePUBMED(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.PUBMED, pidType, pid, display, hdl, resp);
                 break;
             case BIOSAMPLE:
-                handleBIOSAMPLE(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.BIOSAMPLE, pidType, pid, display, hdl, resp);
                 break;
             case EAN13:
-                handleEAN13(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.EAN13, pidType, pid, display, hdl, resp);
                 break;
             case RAID:
-                handleRAID(pidType, pid, display, hdl, resp);
+                handleRequest(EndpointType.RAID, pidType, pid, display, hdl, resp);
                 break;
             default:
                 noPidType(resp);
@@ -701,7 +763,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    private String checkForCanonicalFormat(String pid) {
+    public static String checkForCanonicalFormat(String pid) {
         Pattern pattern = Pattern.compile("^((https?://)?[^/]+/).+$", Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(pid);
         boolean matchFound = matcher.find();
@@ -969,95 +1031,18 @@ public class PIDMRHDLProxy extends HDLProxy {
             redirect(pidType, pid, display, redirectUrl, hdl, resp);
         }
     }
-    private void handleZbl(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Zbl_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Zbl_METADATA_ENDPOINT"), null);
-    }
 
-    private void handleSwmath(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Swmath_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Swmath_METADATA_ENDPOINT"), null);
-    }
-
-    private void handleZbmath(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Zbmath_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Zbmath_METADATA_ENDPOINT"), null);
-    }
-
-    private void handleOrcid(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Orcid_LANDINGPAGE_ENDPOINT"), null, null);
-    }
-
-    private void handleUrnFi(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("UrnFi_LANDINGPAGE_ENDPOINT"), null, null);
-    }
-
-    private void handleUrnNl(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("UrnNl_LANDINGPAGE_ENDPOINT"), null, null);
-    }
-
-    private void handleArxiv(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Arxiv_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Arxiv_METADATA_ENDPOINT"), config.getEndpoints().get("Arxiv_RESOURCE_ENDPOINT"));
-    }
-
-    private void handle21(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Hdl_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("HDl_METADATA_ENDPOINT"), null);
-    }
-
-    private void handleSwh(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("Swh_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("Swh_METADATA_ENDPOINT"), config.getEndpoints().get("Swh_RESOURCE_ENDPOINT"));
-    }
-
-    private void handleRor(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("ROR_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ROR_METADATA_ENDPOINT"), null);
-    }
-
-    private void handleISLRN(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("ISLRN_LANDINGPAGE_ENDPOINT"), null, null);
-    }
-
-    private void handleISNI(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("ISNI_LANDINGPAGE_ENDPOINT"), null, null);
-    }
-
-    private void handleISBN(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("ISBN_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ISBN_METADATA_ENDPOINT"), null);
-    }
-
-    private void handleBIBCODE(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("BIBCODE_LANDINGPAGE_ENDPOINT"), null, config.getEndpoints().get("BIBCODE_RESOURCE_ENDPOINT"));
-    }
-
-    private void handleArk(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("ARK_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("ARK_METADATA_ENDPOINT"), null);
-    }
-
-    private void handleUrnDe(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("UrnDe_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("UrnDe_METADATA_ENDPOINT"), config.getEndpoints().get("UrnDe_METADATA_ENDPOINT"));
-    }
-
-    private void handleUrnCh(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("UrnCh_LANDINGPAGE_ENDPOINT"), config.getEndpoints().get("UrnCh_METADATA_ENDPOINT"), config.getEndpoints().get("UrnCh_METADATA_ENDPOINT"));
-    }
-
-    private void handleDBGAP(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("DBGAP_LANDINGPAGE_ENDPOINT"), null, null);
-    }
-
-    private void handlePRIDE(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("PRIDE_LANDINGPAGE_ENDPOINT"), null, null);
-    }
-
-    private void handlePUBMED(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("PubMed_LANDINGPAGE_ENDPOINT"), null, null);
-    }
-
-    private void handleBIOSAMPLE(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("BioSample_LANDINGPAGE_ENDPOINT"), null, null);
-    }
-
-    private void handleEAN13(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, pid, display, hdl, resp, config.getEndpoints().get("EAN13_LANDINGPAGE_ENDPOINT"), null, null);
-    }
-
-    private void handleRAID(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        handleRedirect(pidType, checkForCanonicalFormat(pid), display, hdl, resp, config.getEndpoints().get("RAiD_LANDINGPAGE_ENDPOINT"), null, null);
+    private void handleRequest(EndpointType type, String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        String processedPid = type.preprocessPid(pid);
+        handleRedirect(
+                pidType,
+                processedPid,
+                display,
+                hdl,
+                resp,
+                config.getEndpoints().get(type.getLandingPageEndpoint()),
+                config.getEndpoints().get(type.getMetadataEndpoint()),
+                config.getEndpoints().get(type.getResourceEndpoint())
+        );
     }
 }
