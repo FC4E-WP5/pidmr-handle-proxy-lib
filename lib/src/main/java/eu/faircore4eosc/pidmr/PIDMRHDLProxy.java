@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -153,7 +154,7 @@ public class PIDMRHDLProxy extends HDLProxy {
             }
         }
     }
-    
+
     public enum EndpointType {
         ZBL("Zbl_LANDINGPAGE_ENDPOINT", "Zbl_METADATA_ENDPOINT"),
         SWMATH("Swmath_LANDINGPAGE_ENDPOINT", "Swmath_METADATA_ENDPOINT"),
@@ -299,93 +300,56 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void dispatchPidHandlingMode(String pid, String display, HDLServletRequest hdl, String pidType, HttpServletResponse resp) throws IOException, ServletException, HandleException {
         PidType type = PidType.fromString(pidType);
-        switch (type) {
-            case TYPE_21:
-                handleRequest(EndpointType.HANDLE21, pidType, pid, display, hdl, resp);
-                break;
-            case ARXIV:
-                handleRequest(EndpointType.ARXIV, pidType, pid, display, hdl, resp);
-                break;
-            case ARK:
-                handleRequest(EndpointType.ARK, pidType, pid, display, hdl, resp);
-                break;
-            case URN_NBN_CH:
-                handleRequest(EndpointType.URNCH, pidType, pid, display, hdl, resp);
-                break;
-            case URN_NBN_DE:
-                handleRequest(EndpointType.URNDE, pidType, pid, display, hdl, resp);
-                break;
-            case URN_NBN_FI:
-                handleRequest(EndpointType.URNFI, pidType, pid, display, hdl, resp);
-                break;
-            case URN_NBN_NL:
-                handleRequest(EndpointType.URNNL, pidType, pid, display, hdl, resp);
-                break;
-            case DOI:
-                handleDoi(pidType, pid, display, hdl, resp);
-                break;
-            case SWH:
-                String[] swhPidParts = pid.split(":");
-                String swhType = swhPidParts[2];
-                String swhHash = swhPidParts[3];
-                if (display.equals(RESOLVING_MODE_RESOURCE)) {
-                    handleRequest(EndpointType.SWH, pidType, swhHash, display, hdl, resp);
-                } else {
-                    handleRequest(EndpointType.SWH, pidType, pid, display, hdl, resp);
-                }
-                break;
-            case ZENODO:
-                handleZenodo(pidType, pid, display, hdl, resp);
-                break;
-            case ORCID:
-                handleRequest(EndpointType.ORCID, pidType, pid, display, hdl, resp);
-                break;
-            case ZBMATH:
-                handleRequest(EndpointType.ZBMATH, pidType, pid, display, hdl, resp);
-                break;
-            case SWMATH:
-                handleRequest(EndpointType.SWMATH, pidType, pid, display, hdl, resp);
-                break;
-            case ZBL:
-                handleRequest(EndpointType.ZBL, pidType, pid, display, hdl, resp);
-                break;
-            case ROR:
-                handleRequest(EndpointType.ROR, pidType, pid, display, hdl, resp);
-                break;
-            case ISLRN:
-                handleRequest(EndpointType.ISLRN, pidType, pid, display, hdl, resp);
-                break;
-            case ISNI:
-                handleRequest(EndpointType.ISNI, pidType, pid, display, hdl, resp);
-                break;
-            case ISBN:
-                handleRequest(EndpointType.ISBN, pidType, pid, display, hdl, resp);
-                break;
-            case BIBCODE:
-                handleRequest(EndpointType.BIBCODE, pidType, pid, display, hdl, resp);
-                break;
-            case DBGAP:
-                handleRequest(EndpointType.DBGAP, pidType, pid, display, hdl, resp);
-                break;
-            case PRIDE:
-                handleRequest(EndpointType.PRIDE, pidType, pid, display, hdl, resp);
-                break;
-            case PUBMED:
-                handleRequest(EndpointType.PUBMED, pidType, pid, display, hdl, resp);
-                break;
-            case BIOSAMPLE:
-                handleRequest(EndpointType.BIOSAMPLE, pidType, pid, display, hdl, resp);
-                break;
-            case EAN13:
-                handleRequest(EndpointType.EAN13, pidType, pid, display, hdl, resp);
-                break;
-            case RAID:
-                handleRequest(EndpointType.RAID, pidType, pid, display, hdl, resp);
-                break;
-            default:
+        Map<PidType, RequestHandler> handlerMap = new HashMap<>();
+        handlerMap.put(PidType.TYPE_21, (p, r) -> handleRequest(EndpointType.HANDLE21, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.ARXIV, (p, r) -> handleRequest(EndpointType.ARXIV, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.ARK, (p, r) -> handleRequest(EndpointType.ARK, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.URN_NBN_CH, (p, r) -> handleRequest(EndpointType.URNCH, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.URN_NBN_DE, (p, r) -> handleRequest(EndpointType.URNDE, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.URN_NBN_FI, (p, r) -> handleRequest(EndpointType.URNFI, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.URN_NBN_NL, (p, r) -> handleRequest(EndpointType.URNNL, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.ORCID, (p, r) -> handleRequest(EndpointType.ORCID, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.ZBMATH, (p, r) -> handleRequest(EndpointType.ZBMATH, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.SWMATH, (p, r) -> handleRequest(EndpointType.SWMATH, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.ZBL, (p, r) -> handleRequest(EndpointType.ZBL, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.ROR, (p, r) -> handleRequest(EndpointType.ROR, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.ISLRN, (p, r) -> handleRequest(EndpointType.ISLRN, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.ISNI, (p, r) -> handleRequest(EndpointType.ISNI, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.ISBN, (p, r) -> handleRequest(EndpointType.ISBN, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.BIBCODE, (p, r) -> handleRequest(EndpointType.BIBCODE, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.DBGAP, (p, r) -> handleRequest(EndpointType.DBGAP, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.PRIDE, (p, r) -> handleRequest(EndpointType.PRIDE, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.PUBMED, (p, r) -> handleRequest(EndpointType.PUBMED, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.BIOSAMPLE, (p, r) -> handleRequest(EndpointType.BIOSAMPLE, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.EAN13, (p, r) -> handleRequest(EndpointType.EAN13, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.RAID, (p, r) -> handleRequest(EndpointType.RAID, pidType, pid, display, hdl, r));
+
+        handlerMap.put(PidType.SWH, (p, r) -> {
+            String[] swhPidParts = pid.split(":");
+            String swhHash = swhPidParts[3];
+            String resolvedPid = display.equals(RESOLVING_MODE_RESOURCE) ? swhHash : pid;
+            handleRequest(EndpointType.SWH, pidType, resolvedPid, display, hdl, r);
+        });
+
+        handlerMap.put(PidType.DOI, (p, r) -> handleDoi(pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.ZENODO, (p, r) -> handleZenodo(pidType, pid, display, hdl, r));
+
+        RequestHandler handler = handlerMap.getOrDefault(type, (p, r) -> noPidType(r));
+        if (handler != null) {
+            try {
+                handler.handle(pid, resp);
+            } catch (IOException | ServletException | HandleException e) {
+                e.printStackTrace();
                 noPidType(resp);
-                break;
+            }
+        } else {
+            noPidType(resp);
         }
+    }
+
+    @FunctionalInterface
+    public interface RequestHandler {
+        void handle(String pid, HttpServletResponse resp) throws IOException, ServletException, HandleException;
     }
 
     private void noPidType(HttpServletResponse resp) throws IOException {
