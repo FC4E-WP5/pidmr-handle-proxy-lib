@@ -35,6 +35,8 @@ import net.cnri.util.StreamTable;
 import net.handle.apps.servlet_proxy.HDLProxy;
 import net.handle.apps.servlet_proxy.HDLServletRequest;
 import net.handle.apps.servlet_proxy.HDLServletRequest.ResponseType;
+import net.handle.apps.servlet_proxy.RotatingAccessLog;
+
 import net.handle.hdllib.*;
 import net.handle.server.Main;
 import net.handle.server.servletcontainer.HandleServerInterface;
@@ -46,6 +48,10 @@ import org.influxdb.dto.Query;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.owasp.html.PolicyFactory;
+import org.owasp.html.Sanitizers;
 
 public class PIDMRHDLProxy extends HDLProxy {
     public static RequestProcessor resolver = null;
@@ -181,7 +187,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
             @Override
             public String preprocessPid(String pid) {
-                return checkForCanonicalFormat(pid); // Falls eine spezielle Verarbeitung für RAID nötig ist
+                return checkForCanonicalFormat(pid);
             }
         };
 
@@ -189,12 +195,10 @@ public class PIDMRHDLProxy extends HDLProxy {
         private final String metadataEndpoint;
         private final String resourceEndpoint;
 
-        // Konstruktor für Endpoints ohne Resource-Endpoint
         EndpointType(String landingPageEndpoint, String metadataEndpoint) {
             this(landingPageEndpoint, metadataEndpoint, null);
         }
 
-        // Konstruktor für Endpoints mit Resource-Endpoint
         EndpointType(String landingPageEndpoint, String metadataEndpoint, String resourceEndpoint) {
             this.landingPageEndpoint = landingPageEndpoint;
             this.metadataEndpoint = metadataEndpoint;
@@ -221,6 +225,8 @@ public class PIDMRHDLProxy extends HDLProxy {
     private static final String DOI_PREFIX = "doi:";
     private static final String CROSSREF = "crossref";
     private static final String DATACITE = "datacite";
+    private static final String PID_TYPE_21 = "21";
+    private static final String PID_TYPE_EPIC_OLD = "epic_old";
 
     @Override
     public void init() throws ServletException {
@@ -233,7 +239,49 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    // @Override
+    @Override
+    public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
+        HDLServletRequest hdl = new HDLServletRequest(this, req, resp, resolver);
+        String pidType = checkPidType(hdl.hdl);
+
+        if (pidType == null) {
+            errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
+            return;
+        }
+
+        if (PID_TYPE_21.equals(pidType) || PID_TYPE_EPIC_OLD.equals(pidType)) {
+            handleSpecialPidTypes(req, resp);
+            return;
+        }
+
+        handleNormalPidType(hdl, resp, pidType);
+    }
+
+    private void handleSpecialPidTypes(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
+        try {
+            super.doPost(req, resp);
+        } catch (Exception e) {
+            super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Error in super.doPost" + e);
+            errorHandling(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An internal error occurred.");
+        }
+    }
+
+    private void handleNormalPidType(HDLServletRequest hdl, HttpServletResponse resp, String pidType) throws IOException, ServletException {
+        String display = hdl.params.getParameter("display");
+        if (display == null || display.trim().isEmpty()) {
+            display = sanitizeInput(config.getResolvingModes().get("RESOLVING_MODE_LANDINGPAGE"));
+        }
+
+        String pid = sanitizeInput(hdl.hdl);
+        try {
+            dispatchPidHandlingMode(pid, display, hdl, pidType, resp);
+        } catch (HandleException e) {
+            super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Error dispatching PID handling mode" + e);
+            errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "Error dispatching PID handling mode.");
+        }
+    }
+
+    @Override
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
         HDLServletRequest hdl = new HDLServletRequest(this, req, resp, resolver);
         if (!hdl.hdl.contains("MR@")) {
@@ -258,9 +306,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                         }
                         return;
                     } else {
-                        resp.setCharacterEncoding("UTF-8");
-                        resp.setContentType("application/json");
-                        resp.getWriter().println("{\"error\": \"pid type can not be determind.\"}");
+                        errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
                     }
                 }
             }
@@ -269,33 +315,12 @@ public class PIDMRHDLProxy extends HDLProxy {
         super.doGet(req, resp);
     }
 
-    // @Override
-    public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
-        HDLServletRequest hdl = new HDLServletRequest(this, req, resp, resolver);
-        pidType = checkPidType(hdl.hdl);
-        if (pidType != null) {
-            if (!pidType.equals("21") && !pidType.equals("epic_old")) {
-                display = hdl.params.getParameter("display");
-                if (display == null) {
-                    display = config.getResolvingModes().get("RESOLVING_MODE_LANDINGPAGE");
-                }
-                pid = hdl.hdl;
-                try {
-                    dispatchPidHandlingMode(pid, display, hdl, pidType, resp);
-                } catch (HandleException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            else {
-                try {
-                    super.doPost(req, resp);
-                } catch (Exception e) {
-                    // Handle the exception here, e.g., log an error message or take corrective action.
-                }
-            }
-        } else {
-            noPidType(resp);
+    public String sanitizeInput(String input) {
+        if (input == null) {
+            return null;
         }
+        PolicyFactory policy = Sanitizers.FORMATTING.and(Sanitizers.LINKS);
+        return policy.sanitize(input);
     }
 
     private void dispatchPidHandlingMode(String pid, String display, HDLServletRequest hdl, String pidType, HttpServletResponse resp) throws IOException, ServletException, HandleException {
@@ -334,16 +359,16 @@ public class PIDMRHDLProxy extends HDLProxy {
         handlerMap.put(PidType.DOI, (p, r) -> handleDoi(pidType, pid, display, hdl, r));
         handlerMap.put(PidType.ZENODO, (p, r) -> handleZenodo(pidType, pid, display, hdl, r));
 
-        RequestHandler handler = handlerMap.getOrDefault(type, (p, r) -> noPidType(r));
+        RequestHandler handler = handlerMap.getOrDefault(type, (p, r) -> errorHandling(r, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind."));
         if (handler != null) {
             try {
                 handler.handle(pid, resp);
             } catch (IOException | ServletException | HandleException e) {
                 e.printStackTrace();
-                noPidType(resp);
+                errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
             }
         } else {
-            noPidType(resp);
+            errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
         }
     }
 
@@ -352,10 +377,16 @@ public class PIDMRHDLProxy extends HDLProxy {
         void handle(String pid, HttpServletResponse resp) throws IOException, ServletException, HandleException;
     }
 
-    private void noPidType(HttpServletResponse resp) throws IOException {
-        resp.setCharacterEncoding("UTF-8");
+    private void errorHandling(HttpServletResponse resp, int errorCode, String errorMessage) throws IOException {
         resp.setContentType("application/json");
-        resp.getWriter().println("{\"error\": \"pid type can not be determind.\"}");
+        resp.setCharacterEncoding("UTF-8");
+        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("errorCode", errorCode);
+        errorResponse.put("error", errorMessage);
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonResponse = objectMapper.writeValueAsString(errorResponse);
+        resp.getWriter().write(jsonResponse);
     }
 
     private String checkPidType(String pid) throws IOException {

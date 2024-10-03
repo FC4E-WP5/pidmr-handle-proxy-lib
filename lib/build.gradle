@@ -21,6 +21,8 @@ dependencies {
     implementation "net.handle:handle:$handleVersion"
     implementation "javax.servlet:javax.servlet-api:$servletApiVersion"
     implementation "org.influxdb:influxdb-java:$influxdbVersion"
+    implementation "com.fasterxml.jackson.core:jackson-databind:2.15.2"
+    implementation "com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20240325.1"
 }
 
 java {
