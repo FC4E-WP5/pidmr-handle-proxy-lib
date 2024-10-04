@@ -261,7 +261,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         try {
             super.doPost(req, resp);
         } catch (Exception e) {
-            super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Error in super.doPost" + e);
+            super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Error in super.doPost: " + e.getMessage());
             errorHandling(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An internal error occurred.");
         }
     }
@@ -276,7 +276,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         try {
             dispatchPidHandlingMode(pid, display, hdl, pidType, resp);
         } catch (HandleException e) {
-            super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Error dispatching PID handling mode" + e);
+            super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Error dispatching PID handling mode: " + e.getMessage());
             errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "Error dispatching PID handling mode.");
         }
     }
@@ -553,8 +553,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                             });
                             executor.shutdown();
                         } catch (Exception e) {
-                            logIntoInfluxDB(pidType, pid, display, redirectUrl, responseTime, status);
-                            System.err.println("Error transmiting the data to influxdb: " + e.getMessage());
+                            super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Error transmiting the data to influxdb: " + e.getMessage());
                         } finally {
                             influxDB.close();
                         }
@@ -759,11 +758,12 @@ public class PIDMRHDLProxy extends HDLProxy {
     }
 
     public static String checkForCanonicalFormat(String pid) {
-        Pattern pattern = Pattern.compile("^((https?://)?[^/]+/).+$", Pattern.CASE_INSENSITIVE);
+        String regex = "https:\\/\\/[^\\/]+\\/(?:doi:)?(.+)";
+        Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(pid);
         boolean matchFound = matcher.find();
         if (matchFound) {
-            pid = pid.split(matcher.group(1))[1];
+            pid = matcher.group(1);
         }
         return pid;
     }
