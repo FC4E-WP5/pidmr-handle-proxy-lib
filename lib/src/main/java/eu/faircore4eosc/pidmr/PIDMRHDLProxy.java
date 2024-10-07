@@ -52,6 +52,7 @@ import java.time.format.DateTimeFormatter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
+import java.util.Optional;
 
 public class PIDMRHDLProxy extends HDLProxy {
     public static RequestProcessor resolver = null;
@@ -227,6 +228,9 @@ public class PIDMRHDLProxy extends HDLProxy {
     private static final String DATACITE = "datacite";
     private static final String PID_TYPE_21 = "21";
     private static final String PID_TYPE_EPIC_OLD = "epic_old";
+
+    // Precompile the common regex pattern for efficiency
+    private static final Pattern CANONICAL_FORMAT_PATTERN = Pattern.compile("https:\\/\\/[^\\/]+\\/(?:doi:)?(.+)", Pattern.CASE_INSENSITIVE);
 
     @Override
     public void init() throws ServletException {
@@ -415,7 +419,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                             if (!regex.endsWith("$")) {
                                 regex = regex + "$";
                             }
-                            if (getPidType(pid, regex)) {
+                            if (isPidMatchingPattern(pid, regex)) {
                                 recognizedPid = pidType;
                             }
                         });
@@ -439,10 +443,16 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    private boolean getPidType(String pid, String regex) {
+
+
+
+    public boolean isPidMatchingPattern(String pid, String regex) {
+        return matchPidToRegexPattern(pid, regex).find();
+    }
+
+    private static Matcher matchPidToRegexPattern(String pid, String regex) {
         Pattern pattern = Pattern.compile(regex.trim(), Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(pid.trim());
-        return matchFound = matcher.find();
+        return pattern.matcher(pid.trim());
     }
 
     private String fetchUrnDeChResourceUrl(String pid, String metadataEndpoint) {
@@ -595,7 +605,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                 resp.getWriter().println("{\"404\": \"Not Found\"}");
                 break;
             case 422:
-                resp.getWriter().println("{\"404\": \"Unprocessable Content\"}");
+                resp.getWriter().println("{\"422\": \"Unprocessable Content\"}");
                 break;
             case 500:
                 resp.getWriter().println("{\"500\": \"Internal Server Error\"}");
@@ -758,14 +768,15 @@ public class PIDMRHDLProxy extends HDLProxy {
     }
 
     public static String checkForCanonicalFormat(String pid) {
-        String regex = "https:\\/\\/[^\\/]+\\/(?:doi:)?(.+)";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(pid);
-        boolean matchFound = matcher.find();
-        if (matchFound) {
-            pid = matcher.group(1);
+        return extractCanonicalPid(pid).orElse(pid);
+    }
+
+    public static Optional<String> extractCanonicalPid(String pid) {
+        Matcher matcher = CANONICAL_FORMAT_PATTERN.matcher(pid.trim());
+        if (matcher.find()) {
+            return Optional.of(matcher.group(1));
         }
-        return pid;
+        return Optional.empty();
     }
 
     private void noDoiProvider(HttpServletResponse resp) throws IOException {
