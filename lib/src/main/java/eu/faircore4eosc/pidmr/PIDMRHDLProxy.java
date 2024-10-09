@@ -311,6 +311,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                         return;
                     } else {
                         errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
+                        return;
                     }
                 }
             }
@@ -442,9 +443,6 @@ public class PIDMRHDLProxy extends HDLProxy {
             return jsonParser.parse(reader).getAsJsonObject();
         }
     }
-
-
-
 
     public boolean isPidMatchingPattern(String pid, String regex) {
         return matchPidToRegexPattern(pid, regex).find();
