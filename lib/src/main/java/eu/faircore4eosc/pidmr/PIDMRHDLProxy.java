@@ -589,46 +589,43 @@ public class PIDMRHDLProxy extends HDLProxy {
     }
     
     private void handleHttpError(int responseCode, HttpServletResponse resp) throws IOException {
-        resp.setCharacterEncoding("UTF-8");
-        resp.setContentType("application/json");
         switch (responseCode) {
             case 400:
                 errorHandling(resp,400, "Bad Request");
-//                resp.getWriter().println("{\"400\": \"Bad Request\"}");
                 break;
             case 401:
-                resp.getWriter().println("{\"401\": \"Unauthorized\"}");
+                errorHandling(resp,401, "Unauthorized");
                 break;
             case 402:
-                resp.getWriter().println("{\"402\": \"Payment Required\"}");
+                errorHandling(resp,402, "Payment Required");
                 break;
             case 403:
                 errorHandling(resp,404, "Forbidden");
-//                resp.getWriter().println("{\"403\": \"Forbidden\"}");
                 break;
             case 404:
                 errorHandling(resp,404, "Not Found");
-//                resp.getWriter().println("{\"404\": \"Not Found\"}");
                 break;
             case 422:
-                resp.getWriter().println("{\"422\": \"Unprocessable Content\"}");
+                errorHandling(resp,422, "Unprocessable Content");
                 break;
             case 500:
-                resp.getWriter().println("{\"500\": \"Internal Server Error\"}");
+                errorHandling(resp,500, "Internal Server Error");
                 break;
             case 501:
-                resp.getWriter().println("{\"501\": \"Not Implemented\"}");
+                errorHandling(resp,501, "Not Implemented");
                 break;
             case 502:
-                resp.getWriter().println("{\"502\": \"Bad Gateway\"}");
+                errorHandling(resp,502, "Bad Gateway");
                 break;
             case 503:
-                resp.getWriter().println("{\"503\": \"Service Unavailable\"}");
+                errorHandling(resp,503, "Service Unavailable");
                 break;
             case 504:
-                resp.getWriter().println("{\"504\": \"Gateway Timeout\"}");
+                errorHandling(resp,504, "Gateway Timeout");
                 break;
             default:
+                resp.setCharacterEncoding("UTF-8");
+                resp.setContentType("application/json");
                 resp.getWriter().println("{\"error\": \"Unexpected response code: " + responseCode + "\"}");
                 break;
         }
