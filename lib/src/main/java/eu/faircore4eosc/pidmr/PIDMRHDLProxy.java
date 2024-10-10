@@ -94,6 +94,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         ISLRN,
         ISNI,
         ISBN,
+        ISSN,
         BIBCODE,
         DBGAP,
         PRIDE,
@@ -142,6 +143,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return ISNI;
                 case "ISBN":
                     return ISBN;
+                case "ISSN":
+                    return ISSN;
                 case "Bibcode":
                     return BIBCODE;
                 case "dbGaP":
@@ -176,6 +179,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         ISLRN("ISLRN_LANDINGPAGE_ENDPOINT", null),
         ISNI("ISNI_LANDINGPAGE_ENDPOINT", null),
         ISBN("ISBN_LANDINGPAGE_ENDPOINT", "ISBN_METADATA_ENDPOINT"),
+        ISSN("ISSN_LANDINGPAGE_ENDPOINT", "ISSN_METADATA_ENDPOINT"),
         BIBCODE("BIBCODE_LANDINGPAGE_ENDPOINT", null, "BIBCODE_RESOURCE_ENDPOINT"),
         ARK("ARK_LANDINGPAGE_ENDPOINT", "ARK_METADATA_ENDPOINT"),
         URNDE("UrnDe_LANDINGPAGE_ENDPOINT", "UrnDe_METADATA_ENDPOINT", "UrnDe_RESOURCE_ENDPOINT"),
@@ -353,6 +357,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         handlerMap.put(PidType.BIOSAMPLE, (p, r) -> handleRequest(EndpointType.BIOSAMPLE, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.EAN13, (p, r) -> handleRequest(EndpointType.EAN13, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.RAID, (p, r) -> handleRequest(EndpointType.RAID, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.ISSN, (p, r) -> handleRequest(EndpointType.ISSN, pidType, pid, display, hdl, r));
 
         handlerMap.put(PidType.SWH, (p, r) -> {
             String[] swhPidParts = pid.split(":");
@@ -588,7 +593,8 @@ public class PIDMRHDLProxy extends HDLProxy {
         resp.setContentType("application/json");
         switch (responseCode) {
             case 400:
-                resp.getWriter().println("{\"400\": \"Bad Request\"}");
+                errorHandling(resp,400, "Bad Request");
+//                resp.getWriter().println("{\"400\": \"Bad Request\"}");
                 break;
             case 401:
                 resp.getWriter().println("{\"401\": \"Unauthorized\"}");
@@ -597,10 +603,12 @@ public class PIDMRHDLProxy extends HDLProxy {
                 resp.getWriter().println("{\"402\": \"Payment Required\"}");
                 break;
             case 403:
-                resp.getWriter().println("{\"403\": \"Forbidden\"}");
+                errorHandling(resp,404, "Forbidden");
+//                resp.getWriter().println("{\"403\": \"Forbidden\"}");
                 break;
             case 404:
-                resp.getWriter().println("{\"404\": \"Not Found\"}");
+                errorHandling(resp,404, "Not Found");
+//                resp.getWriter().println("{\"404\": \"Not Found\"}");
                 break;
             case 422:
                 resp.getWriter().println("{\"422\": \"Unprocessable Content\"}");
@@ -1008,7 +1016,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                     if (pidType.equals("arXiv")) {
                         String id = pid.split(":")[1];
                         redirectUrl = metadataEndpoint + id;
-                    } else if (pidType.equals("swh")) {
+                    } else if (pidType.equals("swh") || pidType.equals("ISSN")) {
                         redirectUrl = metadataEndpoint + pid + "?format=json";
                     } else if (pidType.equals("ark")) {
                         redirectUrl = metadataEndpoint + pid + "/%3F";
