@@ -783,9 +783,7 @@ public class PIDMRHDLProxy extends HDLProxy {
     }
 
     private void noDoiProvider(HttpServletResponse resp) throws IOException {
-        resp.setCharacterEncoding("UTF-8");
-        resp.setContentType("application/json");
-        resp.getWriter().println("{\"error\": \"DOI provider can not be determind.\"}");
+        errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "DOI provider can not be determind.");
     }
 
     private String getDoiProvider(String pid) {
