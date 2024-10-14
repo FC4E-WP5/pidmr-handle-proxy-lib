@@ -102,6 +102,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         BIOSAMPLE,
         EAN13,
         RAID,
+        GENOME_ID,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -159,6 +160,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return EAN13;
                 case "RAiD":
                     return RAID;
+                case "Genome_ID":
+                    return GENOME_ID;
                 default:
                     return UNKNOWN;
             }
@@ -189,6 +192,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         PUBMED("PubMed_LANDINGPAGE_ENDPOINT", null),
         BIOSAMPLE("BioSample_LANDINGPAGE_ENDPOINT", null),
         EAN13("EAN13_LANDINGPAGE_ENDPOINT", null),
+        GENOME_ID("GENOME_ID_LANDINGPAGE_ENDPOINT", null),
         RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
             @Override
             public String preprocessPid(String pid) {
@@ -358,6 +362,8 @@ public class PIDMRHDLProxy extends HDLProxy {
         handlerMap.put(PidType.EAN13, (p, r) -> handleRequest(EndpointType.EAN13, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.RAID, (p, r) -> handleRequest(EndpointType.RAID, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.ISSN, (p, r) -> handleRequest(EndpointType.ISSN, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.GENOME_ID, (p, r) -> handleRequest(EndpointType.GENOME_ID, pidType, pid, display, hdl, r));
+
 
         handlerMap.put(PidType.SWH, (p, r) -> {
             String[] swhPidParts = pid.split(":");
