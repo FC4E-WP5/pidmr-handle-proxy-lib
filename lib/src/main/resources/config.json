@@ -17,6 +17,7 @@
     "DBGAP_LANDINGPAGE_ENDPOINT": "https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=",
     "DOI_LANDINGPAGE_ENDPOINT": "https://doi.org/",
     "EAN13_LANDINGPAGE_ENDPOINT": "https://www.ean-suche.de/?q=",
+    "GENOME_ID_LANDINGPAGE_ENDPOINT": "https://www.ncbi.nlm.nih.gov/datasets/genome/",
     "Hdl_LANDINGPAGE_ENDPOINT": "https://hdl.handle.net/",
     "HDl_METADATA_ENDPOINT": "https://hdl.handle.net/",
     "ISBN_LANDINGPAGE_ENDPOINT": "https://www.isbn.de/",
