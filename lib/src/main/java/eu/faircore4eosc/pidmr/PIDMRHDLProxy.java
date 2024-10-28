@@ -614,6 +614,9 @@ public class PIDMRHDLProxy extends HDLProxy {
             case 422:
                 errorHandling(resp,422, "Unprocessable Content");
                 break;
+            case 429:
+                errorHandling(resp,429, "Too Many Requests");
+                break;
             case 500:
                 errorHandling(resp,500, "Internal Server Error");
                 break;
@@ -1040,6 +1043,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                 }
                 break;
         }
+
         if (redirectUrl != null) {
             redirect(pidType, pid, display, redirectUrl, hdl, resp);
         }
