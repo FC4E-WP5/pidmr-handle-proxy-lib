@@ -103,6 +103,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         EAN13,
         RAID,
         GENOME_ID,
+        GND,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -162,6 +163,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return RAID;
                 case "Genome_ID":
                     return GENOME_ID;
+                case "GND":
+                    return GND;
                 default:
                     return UNKNOWN;
             }
@@ -193,6 +196,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         BIOSAMPLE("BioSample_LANDINGPAGE_ENDPOINT", null),
         EAN13("EAN13_LANDINGPAGE_ENDPOINT", null),
         GENOME_ID("GENOME_ID_LANDINGPAGE_ENDPOINT", null),
+        GND("GND_LANDINGPAGE_ENDPOINT", "GND_METADATA_ENDPOINT"),
         RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
             @Override
             public String preprocessPid(String pid) {
@@ -363,7 +367,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         handlerMap.put(PidType.RAID, (p, r) -> handleRequest(EndpointType.RAID, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.ISSN, (p, r) -> handleRequest(EndpointType.ISSN, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.GENOME_ID, (p, r) -> handleRequest(EndpointType.GENOME_ID, pidType, pid, display, hdl, r));
-
+        handlerMap.put(PidType.GND, (p, r) -> handleRequest(EndpointType.GND, pidType, pid, display, hdl, r));
 
         handlerMap.put(PidType.SWH, (p, r) -> {
             String[] swhPidParts = pid.split(":");
@@ -1024,6 +1028,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                         redirectUrl = metadataEndpoint + pid + "?format=json";
                     } else if (pidType.equals("ark")) {
                         redirectUrl = metadataEndpoint + pid + "/%3F";
+                    } else if (pidType.equals("GND")) {
+                        redirectUrl = metadataEndpoint + pid + ".json";
                     } else {
                         redirectUrl = metadataEndpoint + pid;
                     }
