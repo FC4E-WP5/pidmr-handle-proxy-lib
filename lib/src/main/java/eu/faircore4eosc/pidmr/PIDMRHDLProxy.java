@@ -522,12 +522,12 @@ public class PIDMRHDLProxy extends HDLProxy {
                 responseCode = connection.getResponseCode();
                 hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, newUrl);
             } else {
-                handleHttpError(responseCode, resp);
+                handleHttpError(responseCode, resp, connection.getResponseMessage());
             }
             logPIDMRAccess(pidType, pid, display, responseCode, addr, AbstractMessage.RC_SUCCESS, hdl.getResponseTime());
             logIntoInfluxDB(pidType, pid, display, redirectUrl, hdl.getResponseTime() + "ms", responseCode);
         } catch (IOException e) {
-            handleHttpError(500, resp);
+            handleHttpError(500, resp, e.getMessage());
             logPIDMRAccess(pidType, pid, display, 500, addr, AbstractMessage.RC_ERROR, hdl.getResponseTime());
             logIntoInfluxDB(pidType, pid, display, redirectUrl,hdl.getResponseTime() + "ms", 500);
         }
@@ -605,43 +605,21 @@ public class PIDMRHDLProxy extends HDLProxy {
         return formattedDateTime;
     }
     
-    private void handleHttpError(int responseCode, HttpServletResponse resp) throws IOException {
+    private void handleHttpError(int responseCode, HttpServletResponse resp, String errmsg) throws IOException {
         switch (responseCode) {
             case 400:
-                errorHandling(resp,400, "Bad Request");
-                break;
             case 401:
-                errorHandling(resp,401, "Unauthorized");
-                break;
             case 402:
-                errorHandling(resp,402, "Payment Required");
-                break;
             case 403:
-                errorHandling(resp,404, "Forbidden");
-                break;
             case 404:
-                errorHandling(resp,404, "Not Found");
-                break;
             case 422:
-                errorHandling(resp,422, "Unprocessable Content");
-                break;
             case 429:
-                errorHandling(resp,429, "Too Many Requests");
-                break;
             case 500:
-                errorHandling(resp,500, "Internal Server Error");
-                break;
             case 501:
-                errorHandling(resp,501, "Not Implemented");
-                break;
             case 502:
-                errorHandling(resp,502, "Bad Gateway");
-                break;
             case 503:
-                errorHandling(resp,503, "Service Unavailable");
-                break;
             case 504:
-                errorHandling(resp,504, "Gateway Timeout");
+                errorHandling(resp,responseCode, errmsg);
                 break;
             default:
                 resp.setCharacterEncoding("UTF-8");
