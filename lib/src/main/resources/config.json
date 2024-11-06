@@ -22,6 +22,7 @@
     "GND_METADATA_ENDPOINT": "https://lobid.org/gnd/",
     "Hdl_LANDINGPAGE_ENDPOINT": "https://hdl.handle.net/",
     "HDl_METADATA_ENDPOINT": "https://hdl.handle.net/",
+    "ISAN_LANDINGPAGE_ENDPOINT": "https://web.isan.org/public/en/isan/",
     "ISBN_LANDINGPAGE_ENDPOINT": "https://www.isbn.de/",
     "ISBN_METADATA_ENDPOINT": "https://www.googleapis.com/books/v1/volumes?q=",
     "ISLRN_LANDINGPAGE_ENDPOINT": "https://www.islrn.org/resources/",
