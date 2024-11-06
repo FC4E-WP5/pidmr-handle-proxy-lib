@@ -69,7 +69,7 @@ public class PIDMRHDLProxy extends HDLProxy {
     private final String CN_CITATION = "citation";
     private String pidType = null;
     private String recognizedPid = null;
-
+    private final Integer TIME_OUT = 10000;
     protected HandleServerInterface handleServer;
 
     private ConfigLoader.Config config;
@@ -505,6 +505,8 @@ public class PIDMRHDLProxy extends HDLProxy {
         try {
             URL apiUrl = new URL(redirectUrl);
             HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
+            connection.setConnectTimeout(TIME_OUT);
+            connection.setReadTimeout(TIME_OUT);
             int responseCode = connection.getResponseCode();
             if (responseCode == 200) {
                 hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
