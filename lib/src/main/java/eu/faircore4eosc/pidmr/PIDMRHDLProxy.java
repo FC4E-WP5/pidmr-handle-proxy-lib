@@ -665,7 +665,7 @@ public class PIDMRHDLProxy extends HDLProxy {
 
         switch (display) {
             case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = config.getEndpoints().get("DOI_LANDINGPAGE_ENDPOINT") + pid;
+                redirectUrl = String.format(config.getEndpoints().get("DOI_LANDINGPAGE_ENDPOINT"), pid);
                 break;
             case RESOLVING_MODE_METADATA:
                 redirectUrl = handleMetadataMode(pid, resp);
@@ -900,7 +900,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         String redirectUrl = null;
         switch (display) {
             case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = config.getEndpoints().get("Zenodo_LANDINGPAGE_ENDPOINT") + documentId;
+                redirectUrl = String.format(config.getEndpoints().get("Zenodo_LANDINGPAGE_ENDPOINT"), documentId);
                 break;
             case RESOLVING_MODE_METADATA:
                 redirectUrl = config.getEndpoints().get("Zenodo_METADATA_ENDPOINT") + documentId;
@@ -1002,7 +1002,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         String redirectUrl = null;
         switch (display) {
             case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = landingPageEndpoint != null ? landingPageEndpoint + pid : null;
+                redirectUrl = landingPageEndpoint != null ? String.format(landingPageEndpoint, pid) : null;
                 break;
             case RESOLVING_MODE_METADATA:
                 if (metadataEndpoint != null) {
