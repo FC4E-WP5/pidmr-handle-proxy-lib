@@ -474,7 +474,7 @@ public class PIDMRHDLProxy extends HDLProxy {
     }
 
     private String fetchUrnDeChResourceUrl(String pid, String metadataEndpoint) {
-        String urnMetadataURL = metadataEndpoint + pid;
+        String urnMetadataURL = String.format(metadataEndpoint, pid);
         try {
             URL apiUrl = new URL(urnMetadataURL);
             HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
@@ -717,9 +717,9 @@ public class PIDMRHDLProxy extends HDLProxy {
 
         switch (doiProvider) {
             case CROSSREF:
-                return fetchCrossrefDoiResourceUrl(config.getEndpoints().get("CROSSREF_METADATA_ENDPOINT") + pid);
+                return fetchCrossrefDoiResourceUrl(String.format(config.getEndpoints().get("CROSSREF_METADATA_ENDPOINT"), pid));
             case DATACITE:
-                JsonElement dataciteResourceRedirectUrl = fetchDataciteDoiResourceUrl(config.getEndpoints().get("DATACITE_METADATA_ENDPOINT") + pid);
+                JsonElement dataciteResourceRedirectUrl = fetchDataciteDoiResourceUrl(String.format(config.getEndpoints().get("DATACITE_METADATA_ENDPOINT"), pid));
                 if (dataciteResourceRedirectUrl != null) {
                     String redirectUrl = dataciteResourceRedirectUrl.toString().replace("\"", "");
                     redirect(pidType, pid, display, redirectUrl, hdl, resp);
@@ -926,7 +926,7 @@ public class PIDMRHDLProxy extends HDLProxy {
     }
 
     private void handleZenodoResourceMode(String pidType, String pid, String display, HDLServletRequest hdl, String documentId, HttpServletResponse resp) throws IOException {
-        String metadataUrl = config.getEndpoints().get("Zenodo_RESOURCE_ENDPOINT") + documentId;
+        String metadataUrl = String.format(config.getEndpoints().get("Zenodo_RESOURCE_ENDPOINT"), documentId);
         String jsonContent = fetchContent(metadataUrl);
 
         if (jsonContent != null) {
@@ -1013,16 +1013,10 @@ public class PIDMRHDLProxy extends HDLProxy {
                 }
                 break;
             case RESOLVING_MODE_RESOURCE:
-                if (resourceEndpoint != null) {
-                    if (pidType.equals("arXiv")) {
-                        redirectUrl = resourceEndpoint + pid + ".pdf";
-                    } else if (pidType.equals("swh")) {
-                        redirectUrl = resourceEndpoint + pid + "/raw/";
-                    } else if (pidType.equals("Bibcode")) {
-                        redirectUrl = resourceEndpoint + pid + "/ADS_PDF/";
-                    } else if (pidType.equals("urn:nbn:de") || pidType.equals("urn:nbn:ch")) {
-                        redirectUrl = fetchUrnDeChResourceUrl(pid, metadataEndpoint);
-                    }
+                if (pidType.equals("urn:nbn:de") || pidType.equals("urn:nbn:ch")) {
+                    redirectUrl = fetchUrnDeChResourceUrl(pid, metadataEndpoint);
+                } else {
+                    redirectUrl = String.format(resourceEndpoint, pid);
                 }
                 break;
         }
