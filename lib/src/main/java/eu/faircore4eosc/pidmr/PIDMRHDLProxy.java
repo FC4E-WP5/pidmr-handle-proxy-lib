@@ -700,9 +700,9 @@ public class PIDMRHDLProxy extends HDLProxy {
 
         switch (doiProvider) {
             case CROSSREF:
-                return config.getEndpoints().get("CROSSREF_METADATA_ENDPOINT") + pid;
+                return String.format(config.getEndpoints().get("CROSSREF_METADATA_ENDPOINT"), pid);
             case DATACITE:
-                return config.getEndpoints().get("DATACITE_METADATA_ENDPOINT") + pid;
+                return String.format(config.getEndpoints().get("DATACITE_METADATA_ENDPOINT"), pid);
             default:
                 return null;
         }
@@ -903,11 +903,11 @@ public class PIDMRHDLProxy extends HDLProxy {
                 redirectUrl = String.format(config.getEndpoints().get("Zenodo_LANDINGPAGE_ENDPOINT"), documentId);
                 break;
             case RESOLVING_MODE_METADATA:
-                redirectUrl = config.getEndpoints().get("Zenodo_METADATA_ENDPOINT") + documentId;
+                redirectUrl = String.format(config.getEndpoints().get("Zenodo_METADATA_ENDPOINT"), documentId);
                 break;
             case RESOLVING_MODE_RESOURCE:
                 handleZenodoResourceMode(pidType, pid, display, hdl, documentId, resp);
-                return;  // Return here since handleZenodoResourceMode deals with the response
+                return;
         }
 
         if (redirectUrl != null) {
@@ -1007,17 +1007,9 @@ public class PIDMRHDLProxy extends HDLProxy {
             case RESOLVING_MODE_METADATA:
                 if (metadataEndpoint != null) {
                     if (pidType.equals("arXiv")) {
-                        String id = pid.split(":")[1];
-                        redirectUrl = metadataEndpoint + id;
-                    } else if (pidType.equals("swh") || pidType.equals("ISSN")) {
-                        redirectUrl = metadataEndpoint + pid + "?format=json";
-                    } else if (pidType.equals("ark")) {
-                        redirectUrl = metadataEndpoint + pid + "/%3F";
-                    } else if (pidType.equals("GND")) {
-                        redirectUrl = metadataEndpoint + pid + ".json";
-                    } else {
-                        redirectUrl = metadataEndpoint + pid;
+                        pid = pid.split(":")[1];
                     }
+                    redirectUrl = String.format(metadataEndpoint, pid);
                 }
                 break;
             case RESOLVING_MODE_RESOURCE:
