@@ -13,6 +13,7 @@
     "BIBCODE_RESOURCE_ENDPOINT": "https://ui.adsabs.harvard.edu/link_gateway/%s/ADS_PDF/",
     "BioSample_LANDINGPAGE_ENDPOINT": "https://www.ncbi.nlm.nih.gov/biosample/%s",
     "CROSSREF_METADATA_ENDPOINT": "https://api.crossref.org/works/%s",
+    "CVCL_LANDINGPAGE_ENDPOINT": "https://www.cellosaurus.org/%s",
     "DATACITE_METADATA_ENDPOINT": "https://api.datacite.org/dois/%s",
     "DBGAP_LANDINGPAGE_ENDPOINT": "https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=%s",
     "DOI_LANDINGPAGE_ENDPOINT": "https://doi.org/%s",

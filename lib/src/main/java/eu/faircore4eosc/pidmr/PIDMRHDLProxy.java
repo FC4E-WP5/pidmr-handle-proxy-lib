@@ -105,6 +105,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         GENOME_ID,
         GND,
         ISAN,
+        CVCL,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -168,6 +169,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return GND;
                 case "ISAN":
                     return ISAN;
+                case "CVCL":
+                    return CVCL;
                 default:
                     return UNKNOWN;
             }
@@ -201,6 +204,8 @@ public class PIDMRHDLProxy extends HDLProxy {
         GENOME_ID("GENOME_ID_LANDINGPAGE_ENDPOINT", null),
         GND("GND_LANDINGPAGE_ENDPOINT", "GND_METADATA_ENDPOINT"),
         ISAN("ISAN_LANDINGPAGE_ENDPOINT", null),
+        CVCL("CVCL_LANDINGPAGE_ENDPOINT", null),
+
         RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
             @Override
             public String preprocessPid(String pid) {
@@ -373,6 +378,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         handlerMap.put(PidType.GENOME_ID, (p, r) -> handleRequest(EndpointType.GENOME_ID, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.GND, (p, r) -> handleRequest(EndpointType.GND, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.ISAN, (p, r) -> handleRequest(EndpointType.ISAN, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.CVCL, (p, r) -> handleRequest(EndpointType.CVCL, pidType, pid, display, hdl, r));
 
         handlerMap.put(PidType.SWH, (p, r) -> {
             String[] swhPidParts = pid.split(":");
