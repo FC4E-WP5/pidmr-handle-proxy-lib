@@ -106,7 +106,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         GND,
         ISAN,
         CVCL,
-        InChiKey,
+        INCHIKEY,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -173,7 +173,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                 case "CVCL":
                     return CVCL;
                 case "InChiKey":
-                    return InChiKey;
+                    return INCHIKEY;
                 default:
                     return UNKNOWN;
             }
@@ -209,7 +209,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         ISAN("ISAN_LANDINGPAGE_ENDPOINT", null),
         CVCL("CVCL_LANDINGPAGE_ENDPOINT", null),
 
-        InChiKey("InChiKey_LANDINGPAGE_ENDPOINT", null),
+        INCHIKEY("InChiKey_LANDINGPAGE_ENDPOINT", null),
 
         RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
             @Override
@@ -384,7 +384,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         handlerMap.put(PidType.GND, (p, r) -> handleRequest(EndpointType.GND, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.ISAN, (p, r) -> handleRequest(EndpointType.ISAN, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.CVCL, (p, r) -> handleRequest(EndpointType.CVCL, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.InChiKey, (p, r) -> handleRequest(EndpointType.InChiKey, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.INCHIKEY, (p, r) -> handleRequest(EndpointType.INCHIKEY, pidType, pid, display, hdl, r));
 
         handlerMap.put(PidType.SWH, (p, r) -> {
             String[] swhPidParts = pid.split(":");
