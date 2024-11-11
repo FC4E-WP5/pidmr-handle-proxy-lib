@@ -50,6 +50,8 @@
     "UrnDe_RESOURCE_ENDPOINT": "https://nbn-resolving.org/json/%s",
     "UrnFi_LANDINGPAGE_ENDPOINT": "https://urn.fi/%s",
     "UrnNl_LANDINGPAGE_ENDPOINT": "https://www.persistent-identifier.nl/%s",
+    "Wikidata_LANDINGPAGE_ENDPOINT": "https://www.wikidata.org/wiki/%s",
+    "Wikidata_METADATA_ENDPOINT": "https://www.wikidata.org/w/rest.php/wikibase/v1/entities/items/%s",
     "Zbmath_LANDINGPAGE_ENDPOINT": "https://zbmath.org/authors/%s",
     "Zbmath_METADATA_ENDPOINT": "https://api.zbmath.org/v1/author/%s",
     "Zbl_LANDINGPAGE_ENDPOINT": "https://zbmath.org/%s",
