@@ -108,6 +108,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         CVCL,
         INCHIKEY,
         WIKIDATA,
+        DID,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -177,6 +178,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return INCHIKEY;
                 case "Wikidata":
                     return WIKIDATA;
+                case "DID":
+                    return DID;
                 default:
                     return UNKNOWN;
             }
@@ -213,6 +216,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         CVCL("CVCL_LANDINGPAGE_ENDPOINT", null),
         INCHIKEY("InChiKey_LANDINGPAGE_ENDPOINT", null),
         WIKIDATA("Wikidata_LANDINGPAGE_ENDPOINT", "Wikidata_METADATA_ENDPOINT"),
+        DID("DID_LANDINGPAGE_ENDPOINT", null),
 
         RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
             @Override
@@ -389,7 +393,8 @@ public class PIDMRHDLProxy extends HDLProxy {
         handlerMap.put(PidType.CVCL, (p, r) -> handleRequest(EndpointType.CVCL, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.INCHIKEY, (p, r) -> handleRequest(EndpointType.INCHIKEY, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.WIKIDATA, (p, r) -> handleRequest(EndpointType.WIKIDATA, pidType, pid, display, hdl, r));
-
+        handlerMap.put(PidType.DID, (p, r) -> handleRequest(EndpointType.DID, pidType, pid, display, hdl, r));
+        
         handlerMap.put(PidType.SWH, (p, r) -> {
             String[] swhPidParts = pid.split(":");
             String swhHash = swhPidParts[3];
