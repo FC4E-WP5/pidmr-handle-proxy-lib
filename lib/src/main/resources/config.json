@@ -25,6 +25,7 @@
     "Hdl_LANDINGPAGE_ENDPOINT": "https://hdl.handle.net/%s",
     "HDl_METADATA_ENDPOINT": "https://hdl.handle.net/%s",
     "InChiKey_LANDINGPAGE_ENDPOINT": "https://scholia.toolforge.org/inchikey/%s",
+    "IGSN_LANDINGPAGE_ENDPOINT": "https://doi.org/10273/%s",
     "ISAN_LANDINGPAGE_ENDPOINT": "https://web.isan.org/public/en/isan/%s",
     "ISBN_LANDINGPAGE_ENDPOINT": "https://www.isbn.de/%s",
     "ISBN_METADATA_ENDPOINT": "https://www.googleapis.com/books/v1/volumes?q=%s",
