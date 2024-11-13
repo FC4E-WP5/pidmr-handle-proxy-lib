@@ -553,7 +553,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                 responseCode = connection.getResponseCode();
                 hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, newUrl);
             } else {
-                handleHttpError(responseCode, resp, connection.getResponseMessage());
+                handleHttpError(responseCode, resp, connection.getResponseMessage()+":"+apiUrl.toString()+":"+redirectUrl);
             }
             logPIDMRAccess(pidType, pid, display, responseCode, addr, AbstractMessage.RC_SUCCESS, hdl.getResponseTime());
             logIntoInfluxDB(pidType, pid, display, redirectUrl, hdl.getResponseTime() + "ms", responseCode);
