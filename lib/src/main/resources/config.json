@@ -12,6 +12,7 @@
     "BIBCODE_LANDINGPAGE_ENDPOINT": "https://ui.adsabs.harvard.edu/abs/%s",
     "BIBCODE_RESOURCE_ENDPOINT": "https://ui.adsabs.harvard.edu/link_gateway/%s/ADS_PDF/",
     "BioSample_LANDINGPAGE_ENDPOINT": "https://www.ncbi.nlm.nih.gov/biosample/%s",
+    "COL_LANDINGPAGE_ENDPOINT": "https://www.catalogueoflife.org/data/taxon/%s",
     "CROSSREF_METADATA_ENDPOINT": "https://api.crossref.org/works/%s",
     "CVCL_LANDINGPAGE_ENDPOINT": "https://www.cellosaurus.org/%s",
     "DATACITE_METADATA_ENDPOINT": "https://api.datacite.org/dois/%s",
