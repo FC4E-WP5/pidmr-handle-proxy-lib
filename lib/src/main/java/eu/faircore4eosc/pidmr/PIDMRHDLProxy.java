@@ -111,6 +111,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         DID,
         IGSN,
         LCCN,
+        COL,
         UNKNOWN;
 
         public static PidType fromString(String type) {
@@ -186,6 +187,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     return IGSN;
                 case "LCCN":
                     return LCCN;
+                case "COL":
+                    return COL;
                 default:
                     return UNKNOWN;
             }
@@ -225,6 +228,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         DID("DID_LANDINGPAGE_ENDPOINT", null),
         IGSN("IGSN_LANDINGPAGE_ENDPOINT", null),
         LCCN("LCCN_LANDINGPAGE_ENDPOINT", "LCCN_METADATA_ENDPOINT"),
+        COL("COL_LANDINGPAGE_ENDPOINT", null),
 
         RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
             @Override
@@ -404,6 +408,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         handlerMap.put(PidType.DID, (p, r) -> handleRequest(EndpointType.DID, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.IGSN, (p, r) -> handleRequest(EndpointType.IGSN, pidType, pid, display, hdl, r));
         handlerMap.put(PidType.LCCN, (p, r) -> handleRequest(EndpointType.LCCN, pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.COL, (p, r) -> handleRequest(EndpointType.COL, pidType, pid, display, hdl, r));
 
         handlerMap.put(PidType.SWH, (p, r) -> {
             String[] swhPidParts = pid.split(":");
