@@ -34,7 +34,7 @@
     "ISSN_LANDINGPAGE_ENDPOINT": "https://portal.issn.org/resource/ISSN/%s",
     "ISSN_METADATA_ENDPOINT": "https://portal.issn.org/resource/ISSN/%s?format=json",
     "LCCN_LANDINGPAGE_ENDPOINT": "https://lccn.loc.gov/%s",
-    "LCCN_METADATA_ENDPOINT": "https://www.loc.gov/item/%s/?fo=json",
+    "LCCN_METADATA_ENDPOINT": "https://www.loc.gov/item/%s?fo=json",
     "Orcid_LANDINGPAGE_ENDPOINT": "https://orcid.org/%s",
     "PRIDE_LANDINGPAGE_ENDPOINT": "https://www.ebi.ac.uk/pride/archive/projects/%s",
     "PubMed_LANDINGPAGE_ENDPOINT": "https://pubmed.ncbi.nlm.nih.gov/%s",
