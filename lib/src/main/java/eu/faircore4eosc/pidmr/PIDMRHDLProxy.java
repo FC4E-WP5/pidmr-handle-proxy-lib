@@ -1015,7 +1015,12 @@ public class PIDMRHDLProxy extends HDLProxy {
             resp.setContentType("application/json");
             resp.getWriter().println(jsonArrayString);
         } catch (IOException e) {
-            // Handle the exception here, e.g., log an error message or take corrective action.
+            super.logError(RotatingAccessLog.ERRLOG_LEVEL_FATAL, "Failed to send resource link list: " + e.getMessage());
+            try {
+                errorHandling(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing the request.");
+            } catch (IOException ioException) {
+                super.logError(RotatingAccessLog.ERRLOG_LEVEL_FATAL, "Failed to send error response to client: " + e.getMessage());
+            }
         }
     }
 
