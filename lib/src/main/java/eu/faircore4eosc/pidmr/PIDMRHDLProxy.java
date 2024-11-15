@@ -798,9 +798,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                 String url = linkObject.get("URL").getAsString();
                 urlJsonArray.add(url);
             }
-            resp.setCharacterEncoding("UTF-8");
-            resp.setContentType("application/json");
-            resp.getWriter().println(urlJsonArray);
+            sendJsonResponse(urlJsonArray.toString(), resp);
         }
     }
 
