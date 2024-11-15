@@ -551,7 +551,7 @@ public class PIDMRHDLProxy extends HDLProxy {
             int responseCode = connection.getResponseCode();
             if (responseCode == 200) {
                 hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
-            } else if (responseCode == 301 || responseCode == 302 || responseCode == 307) {
+            } else if (responseCode == 301 || responseCode == 302 || responseCode == 303 || responseCode == 307) {
                 String newUrl = connection.getHeaderField("Location");
                 URL url = new URL(newUrl);
                 connection = (HttpURLConnection) url.openConnection();
