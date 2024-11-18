@@ -644,27 +644,7 @@ public class PIDMRHDLProxy extends HDLProxy {
     }
     
     private void handleHttpError(int responseCode, HttpServletResponse resp, String errmsg) throws IOException {
-        switch (responseCode) {
-            case 400:
-            case 401:
-            case 402:
-            case 403:
-            case 404:
-            case 422:
-            case 429:
-            case 500:
-            case 501:
-            case 502:
-            case 503:
-            case 504:
-                errorHandling(resp,responseCode, errmsg);
-                break;
-            default:
-                resp.setCharacterEncoding("UTF-8");
-                resp.setContentType("application/json");
-                resp.getWriter().println("{\"error\": \"Unexpected response code: " + responseCode + "\"}");
-                break;
-        }
+        errorHandling(resp,responseCode, errmsg);
     }
 
     private void logPIDMRAccess(String pidType, String pid, String display, int status, String addr, int hdlResponseCode,long responseTime) {
