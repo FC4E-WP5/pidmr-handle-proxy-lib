@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Optional;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -52,7 +54,6 @@ import java.time.format.DateTimeFormatter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
-import java.util.Optional;
 
 public class PIDMRHDLProxy extends HDLProxy {
     public static RequestProcessor resolver = null;
@@ -71,6 +72,7 @@ public class PIDMRHDLProxy extends HDLProxy {
     private String recognizedPid = null;
     private final Integer TIME_OUT = 10000;
     protected HandleServerInterface handleServer;
+    List<Integer> redirectHttpCodes = Arrays.asList(300, 301, 302, 303, 304, 305, 306, 307, 308);
 
     private ConfigLoader.Config config;
 
@@ -551,7 +553,7 @@ public class PIDMRHDLProxy extends HDLProxy {
             int responseCode = connection.getResponseCode();
             if (responseCode == 200) {
                 hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
-            } else if (responseCode == 301 || responseCode == 302 || responseCode == 303 || responseCode == 304 || responseCode == 307) {
+            } else if (redirectHttpCodes.contains(responseCode)) {
                 String newUrl = connection.getHeaderField("Location");
                 URL url = new URL(newUrl);
                 connection = (HttpURLConnection) url.openConnection();
