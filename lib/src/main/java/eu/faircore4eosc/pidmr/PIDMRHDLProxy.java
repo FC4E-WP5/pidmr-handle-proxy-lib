@@ -534,7 +534,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                 return redirectUrl;
             }
         } catch (Exception e) {
-            // Log error or handle exception
+            super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Error fetching urn:nbn:de/ch resource url: " + e.getMessage());
         }
         return null;
     }
