@@ -950,8 +950,8 @@ public class PIDMRHDLProxy extends HDLProxy {
             if (metadataFiles != null) {
                 processMetadataFiles(pidType, pid, display, hdl, metadataFiles, resp);
             } else {
-                // Handle the exception here, e.g., log an error message or take corrective action.
-                // Error ("No 'files' array found within the JSON content.");
+                super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "No metadata found in metadata file.");
+                errorHandling(resp, HttpServletResponse.SC_NOT_FOUND, "No metadata found.");
             }
         }
     }
