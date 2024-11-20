@@ -273,6 +273,8 @@ public class PIDMRHDLProxy extends HDLProxy {
     private static final String DOI_PREFIX = "doi:";
     private static final String CROSSREF = "crossref";
     private static final String DATACITE = "datacite";
+    private static final String JALC = "jalc";
+
     private static final String PID_TYPE_21 = "21";
     private static final String PID_TYPE_EPIC_OLD = "epic_old";
 
@@ -669,8 +671,6 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void handleDoi(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws HandleException, IOException {
         String redirectUrl = null;
-        JsonArray resourceRedirectUrl = null;
-        JsonElement dataciteResourceRedirectUrl;
         String cnType = null;
 
         pid = checkForCanonicalFormat(pid);
@@ -681,32 +681,90 @@ public class PIDMRHDLProxy extends HDLProxy {
             display = RESOLVING_MODE_CN;
         }
 
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                redirectUrl = String.format(config.getEndpoints().get("DOI_LANDINGPAGE_ENDPOINT"), pid);
-                break;
-            case RESOLVING_MODE_METADATA:
-                redirectUrl = handleMetadataMode(pid, resp);
-                if (redirectUrl == null) return;
-                break;
-            case RESOLVING_MODE_RESOURCE:
-                resourceRedirectUrl = handleResourceMode(pid, resp, hdl);
-                if (resourceRedirectUrl == null) return;
-                break;
-            case RESOLVING_MODE_CN:
-                if (cnType != null) {
-                    redirectUrl = handleCnMode(pid, cnType);
-                }
-                break;
+        String doiProvider = getDoiProvider(pid);
+
+        if (doiProvider == null) {
+            noDoiProvider(resp);
+            return;
         }
 
-        if (redirectUrl != null) {
-            redirect(pidType, pid, display, redirectUrl, hdl, resp);
-        } else if (resourceRedirectUrl != null) {
-            processResourceRedirectUrl(resourceRedirectUrl, pidType, pid, display, hdl, resp);
-        } else {
-            redirect(pidType, pid, display, redirectUrl, hdl, resp);
+        try {
+            switch (display) {
+                case RESOLVING_MODE_LANDINGPAGE:
+                    redirectUrl = getDoiLandingPageUrl(pid);
+                    performRedirect(pidType, pid, display, redirectUrl, hdl, resp);
+                    break;
+                case RESOLVING_MODE_METADATA:
+                    redirectUrl = handleMetadataMode(pid, resp);
+                    if (redirectUrl == null) {
+                        sendError(404, resp, "No metadata found for: " + pid);
+                    } else {
+                        performRedirect(pidType, pid, display, redirectUrl, hdl, resp);
+                    }
+                    break;
+                case RESOLVING_MODE_RESOURCE:
+                    handleDoiResourceMode(pidType, pid, display, doiProvider, hdl, resp);
+                    break;
+                case RESOLVING_MODE_CN:
+                    if (cnType != null) {
+                        redirectUrl = handleCnMode(pid, cnType);
+                        performRedirect(pidType, pid, display, redirectUrl, hdl, resp);
+                    }
+                    break;
+                default:
+                    sendError(400, resp, "Unsupported resolving mode: " + display);
+            }
+        } catch (Exception e) {
+            sendError(500, resp, "Internal server errorxxx: " + e.getMessage());
         }
+    }
+
+
+    private String getDoiLandingPageUrl(String pid) {
+        return String.format(config.getEndpoints().get("DOI_LANDINGPAGE_ENDPOINT"), pid);
+    }
+
+    private void handleDoiResourceMode(String pidType, String pid, String display, String doiProvider, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        String dataciteResourceRedirectUrl = null;
+        JsonArray crossrefResourceRedirectUrl = null;
+
+        switch (doiProvider) {
+            case CROSSREF:
+                crossrefResourceRedirectUrl = fetchCrossrefDoiResourceUrl(
+                        String.format(config.getEndpoints().get("CROSSREF_METADATA_ENDPOINT"), pid)
+                );
+                if (crossrefResourceRedirectUrl == null) {
+                    sendError(404, resp, "No resource found for: " + pid);
+                    return;
+                }
+                processResourceRedirectUrl(crossrefResourceRedirectUrl, pidType, pid, display, hdl, resp);
+                break;
+            case DATACITE:
+            case JALC:
+                dataciteResourceRedirectUrl = fetchDataciteDoiResourceUrl(
+                        String.format(config.getEndpoints().get("DATACITE_METADATA_ENDPOINT"), pid)
+                );
+                if (dataciteResourceRedirectUrl == null) {
+                    sendError(404, resp, "No resource found for: " + pid);
+                    return;
+                }
+
+                if (dataciteResourceRedirectUrl != null) {
+                    dataciteResourceRedirectUrl = dataciteResourceRedirectUrl.replace("\"", "");
+                }
+                performRedirect(pidType, pid, display, dataciteResourceRedirectUrl, hdl, resp);
+                break;
+            default:
+                sendError(400, resp, "Unsupported DOI provider: " + doiProvider);
+        }
+    }
+
+    private void performRedirect(String pidType, String pid, String display, String redirectUrl, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
+        redirect(pidType, pid, display, redirectUrl, hdl, resp);
+    }
+
+    private void sendError(int statusCode, HttpServletResponse resp, String message) throws IOException {
+        handleHttpError(statusCode, resp, message);
     }
 
     private String handleMetadataMode(String pid, HttpServletResponse resp) throws IOException {
@@ -721,28 +779,6 @@ public class PIDMRHDLProxy extends HDLProxy {
                 return String.format(config.getEndpoints().get("CROSSREF_METADATA_ENDPOINT"), pid);
             case DATACITE:
                 return String.format(config.getEndpoints().get("DATACITE_METADATA_ENDPOINT"), pid);
-            default:
-                return null;
-        }
-    }
-
-    private JsonArray handleResourceMode(String pid, HttpServletResponse resp, HDLServletRequest hdl) throws IOException {
-        String doiProvider = getDoiProvider(pid);
-        if (doiProvider == null) {
-            noDoiProvider(resp);
-            return null;
-        }
-
-        switch (doiProvider) {
-            case CROSSREF:
-                return fetchCrossrefDoiResourceUrl(String.format(config.getEndpoints().get("CROSSREF_METADATA_ENDPOINT"), pid));
-            case DATACITE:
-                JsonElement dataciteResourceRedirectUrl = fetchDataciteDoiResourceUrl(String.format(config.getEndpoints().get("DATACITE_METADATA_ENDPOINT"), pid));
-                if (dataciteResourceRedirectUrl != null) {
-                    String redirectUrl = dataciteResourceRedirectUrl.toString().replace("\"", "");
-                    redirect(pidType, pid, display, redirectUrl, hdl, resp);
-                }
-                return null;
             default:
                 return null;
         }
@@ -846,12 +882,15 @@ public class PIDMRHDLProxy extends HDLProxy {
         return mimType;
     }
 
-    private JsonElement fetchDataciteDoiResourceUrl(String url) {
+    private String fetchDataciteDoiResourceUrl(String url) {
         try {
             String jsonContent = fetchContent(url);
             if (jsonContent != null) {
                 JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
-                return jsonObject.getAsJsonObject("data").getAsJsonObject("attributes").get("url");
+                String redirectUrl = jsonObject.getAsJsonObject("data").getAsJsonObject("attributes").get("url").toString();
+                if (redirectUrl != null) {
+                    return redirectUrl;
+                }
             }
         } catch (Exception e) {
             // Handle the exception here, e.g., log an error message or take corrective action.
@@ -865,16 +904,14 @@ public class PIDMRHDLProxy extends HDLProxy {
             if (jsonContent != null) {
                 JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
                 JsonObject messageObject = jsonObject.getAsJsonObject("message");
-                // Check if the "message" object contains the "links" array
                 if (messageObject.has("link") && messageObject.get("link").isJsonArray()) {
                     return messageObject.getAsJsonArray("link");
                 } else {
-                    // Handle the exception here, e.g., log an error message or take corrective action.
-                    // Error ("No 'links' array found within the 'message' object.");
+                    super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "No resource link for crossref doi found.");
                 }
             }
         } catch (Exception e) {
-            // Handle the exception here, e.g., log an error message or take corrective action.
+            super.logError(RotatingAccessLog.ERRLOG_LEVEL_FATAL, "Crossref resource link could not be fetched.");
         }
         return null;
     }
