@@ -779,6 +779,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                 return String.format(config.getEndpoints().get("CROSSREF_METADATA_ENDPOINT"), pid);
             case DATACITE:
                 return String.format(config.getEndpoints().get("DATACITE_METADATA_ENDPOINT"), pid);
+            case JALC:
+                return null;
             default:
                 return null;
         }
