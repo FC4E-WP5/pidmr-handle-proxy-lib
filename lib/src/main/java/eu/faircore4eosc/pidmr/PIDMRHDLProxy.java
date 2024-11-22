@@ -70,6 +70,7 @@ public class PIDMRHDLProxy extends HDLProxy {
     private final String CN_CITATION = "citation";
     private String pidType = null;
     private String recognizedPid = null;
+
     private final Integer TIME_OUT = 10000;
     protected HandleServerInterface handleServer;
     List<Integer> redirectHttpCodes = Arrays.asList(300, 301, 302, 303, 304, 305, 306, 307, 308);
@@ -454,11 +455,10 @@ public class PIDMRHDLProxy extends HDLProxy {
         resp.getWriter().write(jsonResponse);
     }
 
-    private String checkPidType(String pid) throws IOException {
+    private JsonArray getProviders() {
         File providersFile = new File(config.getProvidersFilePath());
         File providersBackupFile = new File(config.getProvidersBackupFilePath());
         String providersFilePath;
-        recognizedPid = null;
         if (providersFile.exists() || providersBackupFile.exists()) {
             if (providersFile.exists()) {
                 providersFilePath = config.getProvidersFilePath();
@@ -466,34 +466,55 @@ public class PIDMRHDLProxy extends HDLProxy {
                 providersFilePath = config.getProvidersBackupFilePath();
             }
             try {
-                JsonObject jsonContent = readJsonFile(providersFilePath);
-                if (jsonContent != null) {
-                    JsonArray providers = (JsonArray) jsonContent.get("content");
-                    providers.forEach(provider -> {
-                        JsonArray regexesArray = provider.getAsJsonObject().get("regexes").getAsJsonArray();
-                        String pidType = provider.getAsJsonObject().get("type").getAsString();
-                        regexesArray.forEach(regexesItem -> {
-                            String regex = regexesItem.toString().replace("\"", "").replace("\\\\", "\\");
-                            if (!regex.startsWith("^")) {
-                                regex = "^" + regex;
-                            }
-                            if (!regex.endsWith("$")) {
-                                regex = regex + "$";
-                            }
-                            if (isPidMatchingPattern(pid, regex)) {
-                                recognizedPid = pidType;
-                            }
-                        });
-                    });
+                JsonObject providersFileContent = readProvidersFile(providersFilePath);
+                if (providersFileContent != null) {
+                    JsonArray providers = (JsonArray) providersFileContent.get("content");
+                    return providers;
                 }
             } catch (Exception e) {
-                // Handle the exception here, e.g., log an error message or take corrective action.
+                super.logError(RotatingAccessLog.ERRLOG_LEVEL_FATAL, "Providers list could not be fetched: " + e.getMessage());
             }
+        }
+        return null;
+    }
+
+    private JsonArray getProviderElementGivenTheType(String providerElement, JsonElement provider) {
+        JsonArray providerElementArray = provider.getAsJsonObject().get(providerElement).getAsJsonArray();
+        return providerElementArray;
+    }
+
+    private String getProviderType(JsonElement provider) {
+        String pidType = provider.getAsJsonObject().get("type").getAsString();
+        return pidType;
+    }
+
+    private String checkPidType(String pid) throws IOException {
+        recognizedPid = null;
+        try {
+            JsonArray providers = getProviders();
+            providers.forEach(provider -> {
+                JsonArray regexesArray = getProviderElementGivenTheType("regexes", provider);
+                String pidType = getProviderType(provider);
+                regexesArray.forEach(regexesItem -> {
+                    String regex = regexesItem.toString().replace("\"", "").replace("\\\\", "\\");
+                    if (!regex.startsWith("^")) {
+                        regex = "^" + regex;
+                    }
+                    if (!regex.endsWith("$")) {
+                        regex = regex + "$";
+                    }
+                    if (isPidMatchingPattern(pid, regex)) {
+                        recognizedPid = pidType;
+                    }
+                });
+            });
+        } catch (Exception e) {
+            super.logError(RotatingAccessLog.ERRLOG_LEVEL_FATAL, "PID type could not be determined: " + e.getMessage());
         }
         return recognizedPid;
     }
 
-    private JsonObject readJsonFile(String providersFilePath) throws IOException {
+    private JsonObject readProvidersFile(String providersFilePath) throws IOException {
         Path path = Paths.get(providersFilePath);
         if (!Files.exists(path) || !Files.isRegularFile(path)) {
             throw new FileNotFoundException("Provider file not found or not a regular file: " + providersFilePath);
@@ -695,7 +716,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                     performRedirect(pidType, pid, display, redirectUrl, hdl, resp);
                     break;
                 case RESOLVING_MODE_METADATA:
-                    redirectUrl = handleMetadataMode(pid, resp);
+                    redirectUrl = handleDoiMetadataMode(pid, resp);
                     if (redirectUrl == null) {
                         sendError(404, resp, "No metadata found for: " + pid);
                     } else {
@@ -767,7 +788,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         handleHttpError(statusCode, resp, message);
     }
 
-    private String handleMetadataMode(String pid, HttpServletResponse resp) throws IOException {
+    private String handleDoiMetadataMode(String pid, HttpServletResponse resp) throws IOException {
         String doiProvider = getDoiProvider(pid);
         if (doiProvider == null) {
             noDoiProvider(resp);
