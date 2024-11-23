@@ -70,7 +70,7 @@ public class PIDMRHDLProxy extends HDLProxy {
     private final String CN_CITATION = "citation";
     private String pidType = null;
     private String recognizedPid = null;
-
+    private boolean supportedMode = false;
     private final Integer TIME_OUT = 10000;
     protected HandleServerInterface handleServer;
     List<Integer> redirectHttpCodes = Arrays.asList(300, 301, 302, 303, 304, 305, 306, 307, 308);
@@ -297,17 +297,18 @@ public class PIDMRHDLProxy extends HDLProxy {
     public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
         HDLServletRequest hdl = new HDLServletRequest(this, req, resp, resolver);
         String pidType = checkPidType(hdl.hdl);
-
+        if (!checkForSupportedResolutionMode(resp, hdl.params.getParameter("display"), pidType)) {
+            handleHttpError(400, resp, "Resolution mode is not supported.");
+            return;
+        }
         if (pidType == null) {
             errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
             return;
         }
-
         if (PID_TYPE_21.equals(pidType) || PID_TYPE_EPIC_OLD.equals(pidType)) {
             handleSpecialPidTypes(req, resp);
             return;
         }
-
         handleNormalPidType(hdl, resp, pidType);
     }
 
@@ -325,7 +326,6 @@ public class PIDMRHDLProxy extends HDLProxy {
         if (display == null || display.trim().isEmpty()) {
             display = sanitizeInput(config.getResolvingModes().get("RESOLVING_MODE_LANDINGPAGE"));
         }
-
         String pid = sanitizeInput(hdl.hdl);
         try {
             dispatchPidHandlingMode(pid, display, hdl, pidType, resp);
@@ -352,6 +352,10 @@ public class PIDMRHDLProxy extends HDLProxy {
                 }
                 if (pid != null) {
                     pidType = checkPidType(pid);
+                    if (!checkForSupportedResolutionMode(resp, display, pidType)) {
+                        handleHttpError(400, resp, "Resolution mode is not supported.");
+                        return;
+                    }
                     if (pidType != null) {
                         try {
                             dispatchPidHandlingMode(pid, display, hdl, pidType, resp);
@@ -378,6 +382,23 @@ public class PIDMRHDLProxy extends HDLProxy {
         return policy.sanitize(input);
     }
 
+    private boolean checkForSupportedResolutionMode(HttpServletResponse resp, String display, String pidType) {
+        supportedMode = false;
+        JsonArray providers = getProviders();
+        providers.forEach(provider -> {
+            JsonArray resolutionModes = getProviderElementGivenTheType("resolution_modes", provider);
+            String tempPidType = getProviderType(provider);
+            if (tempPidType.equals(pidType)) {
+                resolutionModes.forEach(resolutionMode -> {
+                    String tempResolutionMode = resolutionMode.getAsJsonObject().get("mode").getAsString();
+                    if (tempResolutionMode.equals(display)) {
+                        supportedMode = true;
+                    }
+                });
+            }
+        });
+        return supportedMode;
+    }
     private void dispatchPidHandlingMode(String pid, String display, HDLServletRequest hdl, String pidType, HttpServletResponse resp) throws IOException, ServletException, HandleException {
         PidType type = PidType.fromString(pidType);
         Map<PidType, RequestHandler> handlerMap = new HashMap<>();
@@ -681,7 +702,6 @@ public class PIDMRHDLProxy extends HDLProxy {
             System.err.println("Error reading configuration: " + e);
             return;
         }
-
         try {
             main = new Main(serverDir, configTable);
             main.logAccess("HTTP:PIDMRHDLProxy", InetAddress.getByName(addr), AbstractMessage.OC_RESOLUTION, hdlResponseCode, pidType + ";" + pid + ";" + display + ";" + status, responseTime);
@@ -693,22 +713,17 @@ public class PIDMRHDLProxy extends HDLProxy {
     private void handleDoi(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws HandleException, IOException {
         String redirectUrl = null;
         String cnType = null;
-
         pid = checkForCanonicalFormat(pid);
         pid = pid.replace(DOI_PREFIX, "");
-
         if (display.contains("cn_")) {
             cnType = display.split("cn_")[1];
             display = RESOLVING_MODE_CN;
         }
-
         String doiProvider = getDoiProvider(pid);
-
         if (doiProvider == null) {
             noDoiProvider(resp);
             return;
         }
-
         try {
             switch (display) {
                 case RESOLVING_MODE_LANDINGPAGE:
@@ -748,7 +763,6 @@ public class PIDMRHDLProxy extends HDLProxy {
     private void handleDoiResourceMode(String pidType, String pid, String display, String doiProvider, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         String dataciteResourceRedirectUrl = null;
         JsonArray crossrefResourceRedirectUrl = null;
-
         switch (doiProvider) {
             case CROSSREF:
                 crossrefResourceRedirectUrl = fetchCrossrefDoiResourceUrl(
@@ -769,7 +783,6 @@ public class PIDMRHDLProxy extends HDLProxy {
                     sendError(404, resp, "No resource found for: " + pid);
                     return;
                 }
-
                 if (dataciteResourceRedirectUrl != null) {
                     dataciteResourceRedirectUrl = dataciteResourceRedirectUrl.replace("\"", "");
                 }
@@ -794,7 +807,6 @@ public class PIDMRHDLProxy extends HDLProxy {
             noDoiProvider(resp);
             return null;
         }
-
         switch (doiProvider) {
             case CROSSREF:
                 return String.format(config.getEndpoints().get("CROSSREF_METADATA_ENDPOINT"), pid);
@@ -972,7 +984,6 @@ public class PIDMRHDLProxy extends HDLProxy {
             // Error ("No match found");
             return;
         }
-
         String redirectUrl = null;
         switch (display) {
             case RESOLVING_MODE_LANDINGPAGE:
@@ -985,7 +996,6 @@ public class PIDMRHDLProxy extends HDLProxy {
                 handleZenodoResourceMode(pidType, pid, display, hdl, documentId, resp);
                 return;
         }
-
         if (redirectUrl != null) {
             redirect(pidType, pid, display, redirectUrl, hdl, resp);
         }
@@ -1004,7 +1014,6 @@ public class PIDMRHDLProxy extends HDLProxy {
     private void handleZenodoResourceMode(String pidType, String pid, String display, HDLServletRequest hdl, String documentId, HttpServletResponse resp) throws IOException {
         String metadataUrl = String.format(config.getEndpoints().get("Zenodo_RESOURCE_ENDPOINT"), documentId);
         String jsonContent = fetchContent(metadataUrl);
-
         if (jsonContent != null) {
             JsonArray metadataFiles = extractMetadataFiles(jsonContent);
             if (metadataFiles != null) {
@@ -1101,7 +1110,6 @@ public class PIDMRHDLProxy extends HDLProxy {
                 }
                 break;
         }
-
         if (redirectUrl != null) {
             redirect(pidType, pid, display, redirectUrl, hdl, resp);
         }
