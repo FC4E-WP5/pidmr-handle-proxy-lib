@@ -1,8 +1,8 @@
 {
   "hdlServerConfigPath": "/hs/svr_1",
   "influxdbConfigFile": "influxdb.config",
-  "providersFilePath": "/home/providers/providers.json",
-  "providersBackupFilePath": "/home/providers/providers_backup.json",
+  "providersFilePath": "/hs/svr_1/providers/providers.json",
+  "providersBackupFilePath": "/hs/svr_1/providers/providers_backup.json",
   "endpoints": {
     "ARK_LANDINGPAGE_ENDPOINT": "https://n2t.net/%s",
     "ARK_METADATA_ENDPOINT": "https://n2t.net/%s/%%3F",
