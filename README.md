@@ -39,35 +39,53 @@ and the following to the dependencies section
 
 1) Importing PIDMRHDLProxy Servlet
 
-
+```java
     import net.handle.pidmr.PIDMRHDLProxy;
+```
 
 2) Registering PIDMRHDLProxy Servlet include replacing the following:
 
-
+```java
     ServletHolder hdlProxy = new ServletHolder(HDLProxy.class.getName(), HDLProxy.class);
+```
 
 with the following:
 
+```java
     ServletHolder pidmrhdlProxy = new ServletHolder(PIDMRHDLProxy.class.getName(), PIDMRHDLProxy.class);
-
+```
+        
 3) Adding the servlet include replacing the following:
 
-
+```java
     context.getServletHandler().addServlet(hdlProxy);
+```
 
 with the following:
 
+```java
     context.getServletHandler().addServlet(pidmrhdlProxy);
+```
 
 4) Adding PIDMRHDLProxy route mapping as the default routing include replacing the following:
 
-
+```java
     mapping.setServletName(HDLProxy.class.getName());
+```
 
 with the following
 
+```java
     mapping.setServletName(PIDMRHDLProxy.class.getName());
+```
+
+5) PID type recognition and mapping is done using the provider details provided by the PIDMR API. To fetch the provider json file a shell script, "providers.sh" is used which is included in this repository. A cron job should be implemented to execute the shell script in an aproperiate interval to update the providers list. The shell script is placed in "/hs/svr_1/providers" directory where "/hs/svr_1" is the configuration directory of the Handle Server. The cron job could looks like the following which runs every hour every day and every month:
+
+```
+0 * * * * /hs/svr_1/providers/providers.sh
+```
+
+Please note that the shell script should be made executable.
 
 ### Integrating the PIDMRHDLProxy servlet in Handle Software
 
