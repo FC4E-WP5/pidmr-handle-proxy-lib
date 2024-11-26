@@ -49,7 +49,7 @@ and the following to the dependencies section
     ServletHolder hdlProxy = new ServletHolder(HDLProxy.class.getName(), HDLProxy.class);
 ```
 
-with the following:
+&nbsp;&nbsp;&nbsp;&nbsp;with the following:
 
 ```java
     ServletHolder pidmrhdlProxy = new ServletHolder(PIDMRHDLProxy.class.getName(), PIDMRHDLProxy.class);
@@ -61,7 +61,7 @@ with the following:
     context.getServletHandler().addServlet(hdlProxy);
 ```
 
-with the following:
+&nbsp;&nbsp;&nbsp;&nbsp;with the following:
 
 ```java
     context.getServletHandler().addServlet(pidmrhdlProxy);
@@ -73,19 +73,21 @@ with the following:
     mapping.setServletName(HDLProxy.class.getName());
 ```
 
-with the following
+&nbsp;&nbsp;&nbsp;&nbsp;with the following
 
 ```java
     mapping.setServletName(PIDMRHDLProxy.class.getName());
 ```
 
-5) PID type recognition and mapping is done using the provider details provided by the PIDMR API. To fetch the provider json file a shell script, "providers.sh" is used which is included in this repository. A cron job should be implemented to execute the shell script in an aproperiate interval to update the providers list. The shell script is placed in "/hs/svr_1/providers" directory where "/hs/svr_1" is the configuration directory of the Handle Server. The cron job could looks like the following which runs every hour every day and every month:
+5) The process of PID type recognition and mapping relies on the provider details obtained via the PIDMR API. To retrieve the provider JSON file, a bash script named providers.sh is used. This script is included in the repository.
+To ensure the providers list remains up-to-date, a cron job should be set up to execute the bash script at regular intervals. The bash script is located in the /hs/svr_1/providers directory, where /hs/svr_1 serves as the configuration directory for the Handle Server.
+Below is an example of a cron job that runs the bash script hourly:
 
 ```
 0 * * * * /hs/svr_1/providers/providers.sh
 ```
 
-Please note that the shell script should be made executable.
+&nbsp;&nbsp;&nbsp;&nbsp;Please note that the shell script should be made executable.
 
 6. In addition to native Handle logging (e.g., access.log and error.log), PIDMR provides a remote InfluxDB logging mechanism. This feature records detailed information about PID resolutions, including:
 
@@ -97,7 +99,7 @@ Please note that the shell script should be made executable.
    - The Response time
    - The HTTP response code
 
-To enable this functionality, place the configuration file influxdb.config in the Handle Server configuration directory located at /hs/svr_1.
+&nbsp;&nbsp;&nbsp;&nbsp;To enable this functionality, place the configuration file influxdb.config in the Handle Server configuration directory located at /hs/svr_1.
 
 ```
 {
@@ -113,6 +115,9 @@ To enable this functionality, place the configuration file influxdb.config in th
   }
 }
 ```
+
+7. To integrate the pidmrhdlproxy-0.1.jar into the Handle Software, a GitLab CI/CD pipeline is utilized. The necessary gitlab-ci.yml file is provided in this repository.
+For the pipeline to function correctly, the restart_pidmr.sh bash script (also included in this repository) must be installed on the Handle Server.
 
 ### Integrating the PIDMRHDLProxy servlet in Handle Software
 
