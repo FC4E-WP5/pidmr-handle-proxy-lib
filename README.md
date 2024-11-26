@@ -87,6 +87,33 @@ with the following
 
 Please note that the shell script should be made executable.
 
+6. In addition to native Handle logging (e.g., access.log and error.log), PIDMR provides a remote InfluxDB logging mechanism. This feature records detailed information about PID resolutions, including:
+
+   - The Date and time
+   - The PID
+   - The PID provider type
+   - The  Resolution mode
+   - The Resolution endpoint
+   - The Response time
+   - The HTTP response code
+
+To enable this functionality, place the configuration file influxdb.config in the Handle Server configuration directory located at /hs/svr_1.
+
+```
+{
+  "influxdb_config" = {
+    "bind_address" = "InfluxDB endpoint"
+    "bind_port" = "8086"
+    "databaseName" = "database name"
+    "measurement" = "table name"
+    "num_threads" = "5"
+    "username" = "username"
+    "password" = "password"
+    "admin_email" = "admin email address"
+  }
+}
+```
+
 ### Integrating the PIDMRHDLProxy servlet in Handle Software
 
 To build the jar archive execute the following command:
