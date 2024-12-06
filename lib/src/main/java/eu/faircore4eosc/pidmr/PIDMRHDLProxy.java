@@ -641,12 +641,12 @@ public class PIDMRHDLProxy extends HDLProxy {
                             influxDB.enableBatch(10, 200, TimeUnit.MILLISECONDS);
                             Point point = Point.measurement(measurement)
                                     .time(System.currentTimeMillis() / 1000L, TimeUnit.MILLISECONDS)
-                                    .addField("date", getLogDateTime())
-                                    .addField("endpoint", redirectUrl)
-                                    .addField("pidType", pidType)
-                                    .addField("pid", pid)
-                                    .addField("display", display)
-                                    .addField("status", status)
+                                    .addField("time_stamp", getLogDateTime())
+                                    .addField("pid_endpoint", redirectUrl)
+                                    .addField("pid_type", pidType)
+                                    .addField("pid_id", pid)
+                                    .addField("pid_mode", display)
+                                    .addField("pid_resolver_status", status)
                                     .addField("responseTime", responseTime)
                                     .build();
                             try {
