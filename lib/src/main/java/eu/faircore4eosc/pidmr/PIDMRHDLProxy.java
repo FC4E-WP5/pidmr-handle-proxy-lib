@@ -78,7 +78,7 @@ public class PIDMRHDLProxy extends HDLProxy {
     private ConfigLoader.Config config;
 
     public enum PidType {
-        TYPE_21,
+        EPIC,
         EPIC_OLD,
         ARXIV,
         ARK,
@@ -119,9 +119,10 @@ public class PIDMRHDLProxy extends HDLProxy {
 
         public static PidType fromString(String type) {
             switch (type) {
-                case "21":
+                case "epic":
+                    return EPIC;
                 case "epic_old":
-                    return TYPE_21;
+                    return EPIC_OLD;
                 case "arXiv":
                     return ARXIV;
                 case "ark":
@@ -203,10 +204,11 @@ public class PIDMRHDLProxy extends HDLProxy {
         SWMATH("Swmath_LANDINGPAGE_ENDPOINT", "Swmath_METADATA_ENDPOINT"),
         ZBMATH("Zbmath_LANDINGPAGE_ENDPOINT", "Zbmath_METADATA_ENDPOINT"),
         ORCID("Orcid_LANDINGPAGE_ENDPOINT", null),
-        URNFI("UrnFi_LANDINGPAGE_ENDPOINT", null),
-        URNNL("UrnNl_LANDINGPAGE_ENDPOINT", null),
+        URN_NBN_FI("UrnFi_LANDINGPAGE_ENDPOINT", null),
+        URN_NBN_NL("UrnNl_LANDINGPAGE_ENDPOINT", null),
         ARXIV("Arxiv_LANDINGPAGE_ENDPOINT", "Arxiv_METADATA_ENDPOINT", "Arxiv_RESOURCE_ENDPOINT"),
-        HANDLE21("Hdl_LANDINGPAGE_ENDPOINT", "HDl_METADATA_ENDPOINT"),
+        EPIC("Hdl_LANDINGPAGE_ENDPOINT", "HDl_METADATA_ENDPOINT"),
+        EPIC_OLD("Hdl_LANDINGPAGE_ENDPOINT", "HDl_METADATA_ENDPOINT"),
         SWH("Swh_LANDINGPAGE_ENDPOINT", "Swh_METADATA_ENDPOINT", "Swh_RESOURCE_ENDPOINT"),
         ROR("ROR_LANDINGPAGE_ENDPOINT", "ROR_METADATA_ENDPOINT"),
         ISLRN("ISLRN_LANDINGPAGE_ENDPOINT", null),
@@ -215,8 +217,8 @@ public class PIDMRHDLProxy extends HDLProxy {
         ISSN("ISSN_LANDINGPAGE_ENDPOINT", "ISSN_METADATA_ENDPOINT"),
         BIBCODE("BIBCODE_LANDINGPAGE_ENDPOINT", null, "BIBCODE_RESOURCE_ENDPOINT"),
         ARK("ARK_LANDINGPAGE_ENDPOINT", "ARK_METADATA_ENDPOINT"),
-        URNDE("UrnDe_LANDINGPAGE_ENDPOINT", "UrnDe_METADATA_ENDPOINT", "UrnDe_RESOURCE_ENDPOINT"),
-        URNCH("UrnCh_LANDINGPAGE_ENDPOINT", "UrnCh_METADATA_ENDPOINT", "UrnCh_RESOURCE_ENDPOINT"),
+        URN_NBN_DE("UrnDe_LANDINGPAGE_ENDPOINT", "UrnDe_METADATA_ENDPOINT", "UrnDe_RESOURCE_ENDPOINT"),
+        URN_NBN_CH("UrnCh_LANDINGPAGE_ENDPOINT", "UrnCh_METADATA_ENDPOINT", "UrnCh_RESOURCE_ENDPOINT"),
         DBGAP("DBGAP_LANDINGPAGE_ENDPOINT", null),
         PRIDE("PRIDE_LANDINGPAGE_ENDPOINT", null),
         PUBMED("PubMed_LANDINGPAGE_ENDPOINT", null),
@@ -276,7 +278,7 @@ public class PIDMRHDLProxy extends HDLProxy {
     private static final String DATACITE = "datacite";
     private static final String JALC = "jalc";
 
-    private static final String PID_TYPE_21 = "21";
+    private static final String PID_TYPE_21 = "epic";
     private static final String PID_TYPE_EPIC_OLD = "epic_old";
 
     // Precompile the common regex pattern for efficiency
@@ -297,16 +299,16 @@ public class PIDMRHDLProxy extends HDLProxy {
     public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
         HDLServletRequest hdl = new HDLServletRequest(this, req, resp, resolver);
         String pidType = checkPidType(hdl.hdl);
-        if (!checkForSupportedResolutionMode(resp, hdl.params.getParameter("display"), pidType)) {
-            handleHttpError(400, resp, "Resolution mode is not supported.");
-            return;
-        }
         if (pidType == null) {
             errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
             return;
         }
         if (PID_TYPE_21.equals(pidType) || PID_TYPE_EPIC_OLD.equals(pidType)) {
             handleSpecialPidTypes(req, resp);
+            return;
+        }
+        if (!checkForSupportedResolutionMode(resp, hdl.params.getParameter("display"), pidType)) {
+            handleHttpError(400, resp, "Resolution mode is not supported.");
             return;
         }
         handleNormalPidType(hdl, resp, pidType);
@@ -388,6 +390,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         providers.forEach(provider -> {
             JsonArray resolutionModes = getProviderElementGivenTheType("resolution_modes", provider);
             String tempPidType = getProviderType(provider);
+
             if (tempPidType.equals(pidType)) {
                 resolutionModes.forEach(resolutionMode -> {
                     String tempResolutionMode = resolutionMode.getAsJsonObject().get("mode").getAsString();
@@ -399,43 +402,13 @@ public class PIDMRHDLProxy extends HDLProxy {
         });
         return supportedMode;
     }
+
     private void dispatchPidHandlingMode(String pid, String display, HDLServletRequest hdl, String pidType, HttpServletResponse resp) throws IOException, ServletException, HandleException {
         PidType type = PidType.fromString(pidType);
-        Map<PidType, RequestHandler> handlerMap = new HashMap<>();
-        handlerMap.put(PidType.TYPE_21, (p, r) -> handleRequest(EndpointType.HANDLE21, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.ARXIV, (p, r) -> handleRequest(EndpointType.ARXIV, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.ARK, (p, r) -> handleRequest(EndpointType.ARK, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.URN_NBN_CH, (p, r) -> handleRequest(EndpointType.URNCH, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.URN_NBN_DE, (p, r) -> handleRequest(EndpointType.URNDE, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.URN_NBN_FI, (p, r) -> handleRequest(EndpointType.URNFI, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.URN_NBN_NL, (p, r) -> handleRequest(EndpointType.URNNL, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.ORCID, (p, r) -> handleRequest(EndpointType.ORCID, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.ZBMATH, (p, r) -> handleRequest(EndpointType.ZBMATH, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.SWMATH, (p, r) -> handleRequest(EndpointType.SWMATH, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.ZBL, (p, r) -> handleRequest(EndpointType.ZBL, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.ROR, (p, r) -> handleRequest(EndpointType.ROR, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.ISLRN, (p, r) -> handleRequest(EndpointType.ISLRN, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.ISNI, (p, r) -> handleRequest(EndpointType.ISNI, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.ISBN, (p, r) -> handleRequest(EndpointType.ISBN, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.BIBCODE, (p, r) -> handleRequest(EndpointType.BIBCODE, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.DBGAP, (p, r) -> handleRequest(EndpointType.DBGAP, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.PRIDE, (p, r) -> handleRequest(EndpointType.PRIDE, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.PUBMED, (p, r) -> handleRequest(EndpointType.PUBMED, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.BIOSAMPLE, (p, r) -> handleRequest(EndpointType.BIOSAMPLE, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.EAN13, (p, r) -> handleRequest(EndpointType.EAN13, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.RAID, (p, r) -> handleRequest(EndpointType.RAID, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.ISSN, (p, r) -> handleRequest(EndpointType.ISSN, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.GENOME_ID, (p, r) -> handleRequest(EndpointType.GENOME_ID, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.GND, (p, r) -> handleRequest(EndpointType.GND, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.ISAN, (p, r) -> handleRequest(EndpointType.ISAN, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.CVCL, (p, r) -> handleRequest(EndpointType.CVCL, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.INCHIKEY, (p, r) -> handleRequest(EndpointType.INCHIKEY, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.WIKIDATA, (p, r) -> handleRequest(EndpointType.WIKIDATA, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.DID, (p, r) -> handleRequest(EndpointType.DID, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.IGSN, (p, r) -> handleRequest(EndpointType.IGSN, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.LCCN, (p, r) -> handleRequest(EndpointType.LCCN, pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.COL, (p, r) -> handleRequest(EndpointType.COL, pidType, pid, display, hdl, r));
 
+        Map<PidType, RequestHandler> handlerMap = new HashMap<>();
+        handlerMap.put(PidType.DOI, (p, r) -> handleDoi(pidType, pid, display, hdl, r));
+        handlerMap.put(PidType.ZENODO, (p, r) -> handleZenodo(pidType, pid, display, hdl, r));
         handlerMap.put(PidType.SWH, (p, r) -> {
             String[] swhPidParts = pid.split(":");
             String swhHash = swhPidParts[3];
@@ -443,19 +416,22 @@ public class PIDMRHDLProxy extends HDLProxy {
             handleRequest(EndpointType.SWH, pidType, resolvedPid, display, hdl, r);
         });
 
-        handlerMap.put(PidType.DOI, (p, r) -> handleDoi(pidType, pid, display, hdl, r));
-        handlerMap.put(PidType.ZENODO, (p, r) -> handleZenodo(pidType, pid, display, hdl, r));
-
-        RequestHandler handler = handlerMap.getOrDefault(type, (p, r) -> errorHandling(r, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind."));
-        if (handler != null) {
+        RequestHandler defaultHandler = (p, r) -> {
             try {
-                handler.handle(pid, resp);
-            } catch (IOException | ServletException | HandleException e) {
-                e.printStackTrace();
-                errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
+                EndpointType endpoint = EndpointType.valueOf(type.name());
+                handleRequest(endpoint, pidType, pid, display, hdl, r);
+            } catch (IllegalArgumentException e) {
+                errorHandling(r, HttpServletResponse.SC_BAD_REQUEST, "The PID type can not be determined.");
             }
-        } else {
-            errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
+        };
+
+        RequestHandler handler = handlerMap.getOrDefault(type, defaultHandler);
+
+        try {
+            handler.handle(pid, resp);
+        } catch (IOException | ServletException | HandleException e) {
+            e.printStackTrace();
+            errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "The PID type can not be determined.");
         }
     }
 
