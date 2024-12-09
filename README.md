@@ -123,7 +123,7 @@ For the pipeline to function correctly, the restart_pidmr.sh bash script (also i
 
 To build the jar archive execute the following command:
 
-    ./gradlew build
+    ./gradlew clean build
 
 This assumes that you have already installed gradle.For the PIDMRHDLProxy to take effect place the created jar archive in the
 lib folder of the Handle Software located at:
