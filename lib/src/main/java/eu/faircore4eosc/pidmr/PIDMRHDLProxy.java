@@ -117,85 +117,56 @@ public class PIDMRHDLProxy extends HDLProxy {
         COL,
         UNKNOWN;
 
-        public static PidType fromString(String type) {
-            switch (type) {
-                case "epic":
-                    return EPIC;
-                case "epic_old":
-                    return EPIC_OLD;
-                case "arXiv":
-                    return ARXIV;
-                case "ark":
-                    return ARK;
-                case "urn:nbn:ch":
-                    return URN_NBN_CH;
-                case "urn:nbn:de":
-                    return URN_NBN_DE;
-                case "urn:nbn:fi":
-                    return URN_NBN_FI;
-                case "urn:nbn:nl":
-                    return URN_NBN_NL;
-                case "doi":
-                    return DOI;
-                case "swh":
-                    return SWH;
-                case "10.5281/zenodo":
-                    return ZENODO;
-                case "orcid":
-                    return ORCID;
-                case "zbMATH":
-                    return ZBMATH;
-                case "swMATH":
-                    return SWMATH;
-                case "Zbl":
-                    return ZBL;
-                case "ROR":
-                    return ROR;
-                case "ISLRN":
-                    return ISLRN;
-                case "ISNI":
-                    return ISNI;
-                case "ISBN":
-                    return ISBN;
-                case "ISSN":
-                    return ISSN;
-                case "Bibcode":
-                    return BIBCODE;
-                case "dbGaP":
-                    return DBGAP;
-                case "PRIDE":
-                    return PRIDE;
-                case "PubMed":
-                    return PUBMED;
-                case "BioSample":
-                    return BIOSAMPLE;
-                case "EAN13":
-                    return EAN13;
-                case "RAiD":
-                    return RAID;
-                case "Genome_ID":
-                    return GENOME_ID;
-                case "GND":
-                    return GND;
-                case "ISAN":
-                    return ISAN;
-                case "CVCL":
-                    return CVCL;
-                case "InChiKey":
-                    return INCHIKEY;
-                case "Wikidata":
-                    return WIKIDATA;
-                case "DID":
-                    return DID;
-                case "IGSN":
-                    return IGSN;
-                case "LCCN":
-                    return LCCN;
-                case "COL":
-                    return COL;
-                default:
-                    return UNKNOWN;
+        private static final Map<String, PidType> TYPE_MAP = new HashMap<>();
+
+        static {
+            String[][] mappings = {
+                    {"epic", "EPIC"},
+                    {"epic_old", "EPIC_OLD"},
+                    {"arXiv", "ARXIV"},
+                    {"ark", "ARK"},
+                    {"urn:nbn:ch", "URN_NBN_CH"},
+                    {"urn:nbn:de", "URN_NBN_DE"},
+                    {"urn:nbn:fi", "URN_NBN_FI"},
+                    {"urn:nbn:nl", "URN_NBN_NL"},
+                    {"doi", "DOI"},
+                    {"swh", "SWH"},
+                    {"10.5281/zenodo", "ZENODO"},
+                    {"orcid", "ORCID"},
+                    {"zbMATH", "ZBMATH"},
+                    {"swMATH", "SWMATH"},
+                    {"Zbl", "ZBL"},
+                    {"ROR", "ROR"},
+                    {"ISLRN", "ISLRN"},
+                    {"ISNI", "ISNI"},
+                    {"ISBN", "ISBN"},
+                    {"ISSN", "ISSN"},
+                    {"Bibcode", "BIBCODE"},
+                    {"dbGaP", "DBGAP"},
+                    {"PRIDE", "PRIDE"},
+                    {"PubMed", "PUBMED"},
+                    {"BioSample", "BIOSAMPLE"},
+                    {"EAN13", "EAN13"},
+                    {"RAiD", "RAID"},
+                    {"Genome_ID", "GENOME_ID"},
+                    {"GND", "GND"},
+                    {"ISAN", "ISAN"},
+                    {"CVCL", "CVCL"},
+                    {"InChiKey", "INCHIKEY"},
+                    {"Wikidata", "WIKIDATA"},
+                    {"DID", "DID"},
+                    {"IGSN", "IGSN"},
+                    {"LCCN", "LCCN"},
+                    {"COL", "COL"}
+            };
+
+            for (String[] mapping : mappings) {
+                TYPE_MAP.put(mapping[0], PidType.valueOf(mapping[1]));
             }
+        }
+
+        public static PidType fromString(String type) {
+            return TYPE_MAP.getOrDefault(type, PidType.UNKNOWN);
         }
     }
 
