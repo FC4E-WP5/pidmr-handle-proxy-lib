@@ -115,6 +115,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         IGSN,
         LCCN,
         COL,
+        LDC,
         UNKNOWN;
 
         private static final Map<String, PidType> TYPE_MAP = new HashMap<>();
@@ -157,7 +158,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     {"DID", "DID"},
                     {"IGSN", "IGSN"},
                     {"LCCN", "LCCN"},
-                    {"COL", "COL"}
+                    {"COL", "COL"},
+                    {"LDC", "LDC"}
             };
 
             for (String[] mapping : mappings) {
@@ -205,7 +207,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         IGSN("IGSN_LANDINGPAGE_ENDPOINT", null),
         LCCN("LCCN_LANDINGPAGE_ENDPOINT", "LCCN_METADATA_ENDPOINT"),
         COL("COL_LANDINGPAGE_ENDPOINT", null),
-
+        LDC("LDC_LANDINGPAGE_ENDPOINT", null),
         RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
             @Override
             public String preprocessPid(String pid) {
