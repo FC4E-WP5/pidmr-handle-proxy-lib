@@ -38,7 +38,7 @@
     "LCCN_METADATA_ENDPOINT": "https://lccn.loc.gov/%s/marcxml",
     "LDC_LANDINGPAGE_ENDPOINT": "https://catalog.ldc.upenn.edu/%s",
     "Orcid_LANDINGPAGE_ENDPOINT": "https://orcid.org/%s",
-    "NANOPUB_LANDINGPAGE_ENDPOINT": "http://purl.org/np/%s",
+    "NANOPUB_LANDINGPAGE_ENDPOINT": "https://nanodash.knowledgepixels.com/explore?id=%s",
     "NANOPUB_METADATA_ENDPOINT": "https://np.knowledgepixels.com/%s.jsonld",
     "PRIDE_LANDINGPAGE_ENDPOINT": "https://www.ebi.ac.uk/pride/archive/projects/%s",
     "PubMed_LANDINGPAGE_ENDPOINT": "https://pubmed.ncbi.nlm.nih.gov/%s",
