@@ -1,0 +1,43 @@
+{
+    "@context": "https://w3id.org/codemeta/3.0",
+    "type": "SoftwareSourceCode",
+    "applicationCategory": "Persistent Identifier",
+    "author": [
+        {
+            "id": "_:author_1",
+            "type": "Person",
+            "affiliation": {
+                "type": "Organization",
+                "name": "eSciense Group - Gesellschaft für wissenschaftliche Datenverarbeitung mbH Göttingen (GWDG)"
+            },
+            "email": "ali.sajedi@gwdg.de",
+            "familyName": "Sajedi",
+            "givenName": "Ali Reza"
+        },
+        {
+            "type": "Role",
+            "schema:author": "_:author_1",
+            "roleName": "Developer"
+        }
+    ],
+    "codeRepository": "https://github.com/FC4E-WP5/pidmr-handle-proxy-lib",
+    "dateCreated": "2024-05-28",
+    "datePublished": "2024-05-28",
+    "description": "This is an extension to Handle Software Proxy providing fuctionalities for PID Meta Resolver (PIDMR). ",
+    "downloadUrl": "https://github.com/FC4E-WP5/pidmr-handle-proxy-lib/archive/refs/heads/main.zip",
+    "funder": {
+        "type": "Organization",
+        "name": "EU"
+    },
+    "identifier": "swh:1:dir:7e86a51dee954046dcde2054e716d9cae82d181c",
+    "isPartOf": "https://www.handle.net/download_hnr.html",
+    "license": "https://spdx.org/licenses/Apache-2.0",
+    "name": "PID Meta Resolver Handle Proxy Lib",
+    "operatingSystem": "Linux",
+    "programmingLanguage": "Java",
+    "runtimePlatform": "JVM",
+    "version": "v1.0.0",
+    "developmentStatus": "active",
+    "funding": "FAIRCORE4EOSC",
+    "issueTracker": "https://github.com/FC4E-WP5/pidmr-handle-proxy-lib/issues"
+}
