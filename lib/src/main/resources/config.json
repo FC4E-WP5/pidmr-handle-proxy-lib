@@ -40,6 +40,7 @@
     "Orcid_LANDINGPAGE_ENDPOINT": "https://orcid.org/%s",
     "NANOPUB_LANDINGPAGE_ENDPOINT": "https://nanodash.knowledgepixels.com/explore?id=%s",
     "NANOPUB_METADATA_ENDPOINT": "https://np.knowledgepixels.com/%s.jsonld",
+    "PMCID_LANDINGPAGE_ENDPOINT": "https://pmc.ncbi.nlm.nih.gov/articles/%s",
     "PRIDE_LANDINGPAGE_ENDPOINT": "https://www.ebi.ac.uk/pride/archive/projects/%s",
     "PubMed_LANDINGPAGE_ENDPOINT": "https://pubmed.ncbi.nlm.nih.gov/%s",
     "RAiD_LANDINGPAGE_ENDPOINT": "https://raid.org/%s",
