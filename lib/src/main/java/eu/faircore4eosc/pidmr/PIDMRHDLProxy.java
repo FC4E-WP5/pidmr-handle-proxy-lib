@@ -117,6 +117,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         COL,
         LDC,
         NANOPUB,
+        PMCID,
         UNKNOWN;
 
         private static final Map<String, PidType> TYPE_MAP = new HashMap<>();
@@ -161,7 +162,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     {"LCCN", "LCCN"},
                     {"COL", "COL"},
                     {"LDC", "LDC"},
-                    {"nanopub", "NANOPUB"}
+                    {"nanopub", "NANOPUB"},
+                    {"PMCID", "PMCID"}
             };
 
             for (String[] mapping : mappings) {
@@ -211,6 +213,8 @@ public class PIDMRHDLProxy extends HDLProxy {
         COL("COL_LANDINGPAGE_ENDPOINT", null),
         LDC("LDC_LANDINGPAGE_ENDPOINT", null),
         NANOPUB("NANOPUB_LANDINGPAGE_ENDPOINT", "NANOPUB_METADATA_ENDPOINT"),
+        PMCID("PMCID_LANDINGPAGE_ENDPOINT", null),
+
         RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
             @Override
             public String preprocessPid(String pid) {
@@ -316,13 +320,12 @@ public class PIDMRHDLProxy extends HDLProxy {
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
         HDLServletRequest hdl = new HDLServletRequest(this, req, resp, resolver);
-        if (!hdl.hdl.contains("MR@")) {
+        if (!hdl.hdl.contains("PIDMR@")) {
             if (req.getQueryString() != null) {
                 if (req.getQueryString().contains("&")) {
                     pid = req.getQueryString().split("&")[0];
                     display = req.getQueryString().split("&")[1];
-                }
-                else {
+                } else {
                     pid = req.getQueryString();
                 }
                 if (display == null) {
@@ -334,6 +337,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                         handleHttpError(400, resp, "Resolution mode is not supported.");
                         return;
                     }
+
                     if (pidType != null) {
                         try {
                             dispatchPidHandlingMode(pid, display, hdl, pidType, resp);
@@ -381,7 +385,6 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void dispatchPidHandlingMode(String pid, String display, HDLServletRequest hdl, String pidType, HttpServletResponse resp) throws IOException, ServletException, HandleException {
         PidType type = PidType.fromString(pidType);
-
         Map<PidType, RequestHandler> handlerMap = new HashMap<>();
         handlerMap.put(PidType.DOI, (p, r) -> handleDoi(pidType, pid, display, hdl, r));
         handlerMap.put(PidType.ZENODO, (p, r) -> handleZenodo(pidType, pid, display, hdl, r));
