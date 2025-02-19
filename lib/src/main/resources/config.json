@@ -17,6 +17,7 @@
     "CVCL_LANDINGPAGE_ENDPOINT": "https://www.cellosaurus.org/%s",
     "DATACITE_METADATA_ENDPOINT": "https://api.datacite.org/dois/%s",
     "DBGAP_LANDINGPAGE_ENDPOINT": "https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=%s",
+    "DBVAR_LANDINGPAGE_ENDPOINT": "https://www.ncbi.nlm.nih.gov/dbvar/variants/%s",
     "DID_LANDINGPAGE_ENDPOINT": "https://dev.uniresolver.io/#%s",
     "DOI_LANDINGPAGE_ENDPOINT": "https://doi.org/%s",
     "EAN13_LANDINGPAGE_ENDPOINT": "https://www.ean-suche.de/?q=%s",
