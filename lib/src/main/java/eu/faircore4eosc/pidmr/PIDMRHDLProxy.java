@@ -118,6 +118,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         LDC,
         NANOPUB,
         PMCID,
+        DBVAR,
         UNKNOWN;
 
         private static final Map<String, PidType> TYPE_MAP = new HashMap<>();
@@ -163,7 +164,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     {"COL", "COL"},
                     {"LDC", "LDC"},
                     {"nanopub", "NANOPUB"},
-                    {"PMCID", "PMCID"}
+                    {"PMCID", "PMCID"},
+                    {"dbVar", "DBVAR"}
             };
 
             for (String[] mapping : mappings) {
@@ -214,6 +216,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         LDC("LDC_LANDINGPAGE_ENDPOINT", null),
         NANOPUB("NANOPUB_LANDINGPAGE_ENDPOINT", "NANOPUB_METADATA_ENDPOINT"),
         PMCID("PMCID_LANDINGPAGE_ENDPOINT", null),
+        DBVAR("DBVAR_LANDINGPAGE_ENDPOINT", null),
 
         RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
             @Override
