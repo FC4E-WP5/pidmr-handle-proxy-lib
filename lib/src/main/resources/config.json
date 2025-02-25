@@ -47,6 +47,7 @@
     "RAiD_LANDINGPAGE_ENDPOINT": "https://raid.org/%s",
     "ROR_LANDINGPAGE_ENDPOINT": "https://ror.org/%s",
     "ROR_METADATA_ENDPOINT": "https://api.ror.org/v1/organizations/%s",
+    "ScopusAuthorID_LANDINGPAGE_ENDPOINT": "https://www.scopus.com/authid/detail.uri?authorId=%s",
     "Swh_LANDINGPAGE_ENDPOINT": "https://archive.softwareheritage.org/%s",
     "Swh_METADATA_ENDPOINT": "https://archive.softwareheritage.org/api/1/resolve/%s?format=json",
     "Swh_RESOURCE_ENDPOINT": "https://archive.softwareheritage.org/browse/content/sha1_git:%s/raw/",
