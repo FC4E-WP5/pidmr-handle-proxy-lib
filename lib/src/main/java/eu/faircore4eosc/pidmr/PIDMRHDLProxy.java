@@ -122,6 +122,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         ScopusAuthorID,
         GDS_ID,
         GDZ,
+        ZB_Pub,
         UNKNOWN;
 
         private static final Map<String, PidType> TYPE_MAP = new HashMap<>();
@@ -171,7 +172,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     {"dbVar", "DBVAR"},
                     {"ScopusAuthorID", "ScopusAuthorID"},
                     {"GDS_ID", "GDS_ID"},
-                    {"GDZ", "GDZ"}
+                    {"GDZ", "GDZ"},
+                    {"ZB_Pub", "ZB_Pub"}
             };
 
             for (String[] mapping : mappings) {
@@ -226,6 +228,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         ScopusAuthorID("ScopusAuthorID_LANDINGPAGE_ENDPOINT", null),
         GDS_ID("GDS_ID_LANDINGPAGE_ENDPOINT", null),
         GDZ("GDZ_LANDINGPAGE_ENDPOINT", "GDZ_METADATA_ENDPOINT", "GDZ_RESOURCE_ENDPOINT"),
+        ZB_Pub("ZB_Pub_LANDINGPAGE_ENDPOINT", "ZB_Pub_METADATA_ENDPOINT"),
 
         RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
             @Override
