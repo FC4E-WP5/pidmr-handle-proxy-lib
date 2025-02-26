@@ -21,6 +21,7 @@
     "DID_LANDINGPAGE_ENDPOINT": "https://dev.uniresolver.io/#%s",
     "DOI_LANDINGPAGE_ENDPOINT": "https://doi.org/%s",
     "EAN13_LANDINGPAGE_ENDPOINT": "https://www.ean-suche.de/?q=%s",
+    "GDS_ID_LANDINGPAGE_ENDPOINT": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=%s",
     "GENOME_ID_LANDINGPAGE_ENDPOINT": "https://www.ncbi.nlm.nih.gov/datasets/genome/%s",
     "GND_LANDINGPAGE_ENDPOINT": "https://lobid.org/gnd/%s",
     "GND_METADATA_ENDPOINT": "https://lobid.org/gnd/%s.json",
