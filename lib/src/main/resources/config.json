@@ -71,6 +71,8 @@
     "Zbmath_METADATA_ENDPOINT": "https://api.zbmath.org/v1/author/%s",
     "Zbl_LANDINGPAGE_ENDPOINT": "https://zbmath.org/%s",
     "Zbl_METADATA_ENDPOINT": "https://api.zbmath.org/v1/document/_structured_search?&zbmath%%20id=%s",
+    "ZB_Pub_LANDINGPAGE_ENDPOINT": "https://zoobank.org/References/%s",
+    "ZB_Pub_METADATA_ENDPOINT": "https://zoobank.org/Identifiers.json/%s",
     "Zenodo_LANDINGPAGE_ENDPOINT": "https://zenodo.org/record/%s",
     "Zenodo_METADATA_ENDPOINT": "https://zenodo.org/api/records/%s",
     "Zenodo_RESOURCE_ENDPOINT": "https://zenodo.org/api/records/%s"
