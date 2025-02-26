@@ -121,6 +121,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         DBVAR,
         ScopusAuthorID,
         GDS_ID,
+        GDZ,
         UNKNOWN;
 
         private static final Map<String, PidType> TYPE_MAP = new HashMap<>();
@@ -170,6 +171,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                     {"dbVar", "DBVAR"},
                     {"ScopusAuthorID", "ScopusAuthorID"},
                     {"GDS_ID", "GDS_ID"},
+                    {"GDZ", "GDZ"}
             };
 
             for (String[] mapping : mappings) {
@@ -223,6 +225,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         DBVAR("DBVAR_LANDINGPAGE_ENDPOINT", null),
         ScopusAuthorID("ScopusAuthorID_LANDINGPAGE_ENDPOINT", null),
         GDS_ID("GDS_ID_LANDINGPAGE_ENDPOINT", null),
+        GDZ("GDZ_LANDINGPAGE_ENDPOINT", "GDZ_METADATA_ENDPOINT", "GDZ_RESOURCE_ENDPOINT"),
 
         RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
             @Override
@@ -1069,6 +1072,8 @@ public class PIDMRHDLProxy extends HDLProxy {
             case RESOLVING_MODE_RESOURCE:
                 if (pidType.equals("urn:nbn:de") || pidType.equals("urn:nbn:ch")) {
                     redirectUrl = fetchUrnDeChResourceUrl(pid, metadataEndpoint);
+                } else if (pidType.equals("GDZ")) {
+                    redirectUrl = String.format(resourceEndpoint, pid, pid);
                 } else {
                     redirectUrl = String.format(resourceEndpoint, pid);
                 }
