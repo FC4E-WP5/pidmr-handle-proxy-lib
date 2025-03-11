@@ -31,6 +31,7 @@
     "GND_LANDINGPAGE_ENDPOINT": "https://lobid.org/gnd/%s",
     "GND_METADATA_ENDPOINT": "https://lobid.org/gnd/%s.json",
     "Hdl_LANDINGPAGE_ENDPOINT": "https://hdl.handle.net/%s",
+    "IdRef_LANDINGPAGE_ENDPOINT": "https://www.idref.fr/%s",
     "HDl_METADATA_ENDPOINT": "https://hdl.handle.net/%s",
     "InChiKey_LANDINGPAGE_ENDPOINT": "https://scholia.toolforge.org/inchikey/%s",
     "IGSN_LANDINGPAGE_ENDPOINT": "https://doi.org/%s",
