@@ -956,8 +956,7 @@ public class PIDMRHDLProxy extends HDLProxy {
     private void handleZenodo(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
         String documentId = extractDocumentId(pid);
         if (documentId == null) {
-            // Handle the exception here, e.g., log an error message or take corrective action.
-            // Error ("No match found");
+            super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "No Zenodo document id found.");
             return;
         }
         String redirectUrl = null;
