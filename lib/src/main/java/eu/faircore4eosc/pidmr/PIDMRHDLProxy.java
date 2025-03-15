@@ -125,6 +125,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         ZB_Pub,
         DigiZeitschriften,
         IdRef,
+        ISMN,
         UNKNOWN;
 
         private static final Map<String, PidType> TYPE_MAP = new HashMap<>();
@@ -177,7 +178,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                     {"GDZ", "GDZ"},
                     {"ZB_Pub", "ZB_Pub"},
                     {"IdRef", "IdRef"},
-                    {"DigiZeitschriften", "DigiZeitschriften"}
+                    {"DigiZeitschriften", "DigiZeitschriften"},
+                    {"ISMN", "ISMN"}
             };
 
             for (String[] mapping : mappings) {
@@ -235,6 +237,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         ZB_Pub("ZB_Pub_LANDINGPAGE_ENDPOINT", "ZB_Pub_METADATA_ENDPOINT"),
         DigiZeitschriften("DigiZeitschriften_LANDINGPAGE_ENDPOINT", "DigiZeitschriften_METADATA_ENDPOINT"),
         IdRef("IdRef_LANDINGPAGE_ENDPOINT", null),
+        ISMN("ISMN_LANDINGPAGE_ENDPOINT", null),
 
         RAID("RAiD_LANDINGPAGE_ENDPOINT", null, null) {
             @Override
