@@ -36,6 +36,7 @@
     "InChiKey_LANDINGPAGE_ENDPOINT": "https://scholia.toolforge.org/inchikey/%s",
     "IGSN_LANDINGPAGE_ENDPOINT": "https://doi.org/%s",
     "ISAN_LANDINGPAGE_ENDPOINT": "https://web.isan.org/public/en/isan/%s",
+    "ISMN_LANDINGPAGE_ENDPOINT": "https://www.ismn-international.org/directory/%s",
     "ISBN_LANDINGPAGE_ENDPOINT": "https://www.isbn.de/%s",
     "ISBN_METADATA_ENDPOINT": "https://www.googleapis.com/books/v1/volumes?q=%s",
     "ISLRN_LANDINGPAGE_ENDPOINT": "https://www.islrn.org/resources/%s",
