@@ -307,27 +307,14 @@ public class PIDMRHDLProxy extends HDLProxy {
             errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
             return;
         }
-        if (PID_TYPE_21.equals(pidType) || PID_TYPE_EPIC_OLD.equals(pidType)) {
-            handleSpecialPidTypes(req, resp);
-            return;
-        }
         if (!checkForSupportedResolutionMode(resp, hdl.params.getParameter("display"), pidType)) {
             handleHttpError(400, resp, "Resolution mode is not supported.");
             return;
         }
-        handleNormalPidType(hdl, resp, pidType);
+        defaultPidTypeHandling(hdl, resp, pidType);
     }
 
-    private void handleSpecialPidTypes(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
-        try {
-            super.doPost(req, resp);
-        } catch (Exception e) {
-            super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Error in super.doPost: " + e.getMessage());
-            errorHandling(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An internal error occurred.");
-        }
-    }
-
-    private void handleNormalPidType(HDLServletRequest hdl, HttpServletResponse resp, String pidType) throws IOException, ServletException {
+    private void defaultPidTypeHandling(HDLServletRequest hdl, HttpServletResponse resp, String pidType) throws IOException, ServletException {
         String display = hdl.params.getParameter("display");
         if (display == null || display.trim().isEmpty()) {
             display = sanitizeInput(config.getResolvingModes().get("RESOLVING_MODE_LANDINGPAGE"));
