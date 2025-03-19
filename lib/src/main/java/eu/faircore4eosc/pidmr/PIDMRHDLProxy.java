@@ -307,7 +307,7 @@ public class PIDMRHDLProxy extends HDLProxy {
             errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
             return;
         }
-        if (!checkForSupportedResolutionMode(resp, hdl.params.getParameter("display"), pidType)) {
+        if (!checkForSupportedResolutionMode(resp, hdl.params.getParameter("display"), pidType) && !pidType.equalsIgnoreCase("doi")) {
             handleHttpError(400, resp, "Resolution mode is not supported.");
             return;
         }
@@ -344,7 +344,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                 }
                 if (pid != null) {
                     pidType = checkPidType(pid);
-                    if (!checkForSupportedResolutionMode(resp, display, pidType)) {
+                    if (!checkForSupportedResolutionMode(resp, display, pidType) && !pidType.equalsIgnoreCase("doi")) {
                         handleHttpError(400, resp, "Resolution mode is not supported.");
                         return;
                     }
