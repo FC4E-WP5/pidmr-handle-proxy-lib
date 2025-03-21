@@ -30,6 +30,7 @@
     "GENOME_ID_LANDINGPAGE_ENDPOINT": "https://www.ncbi.nlm.nih.gov/datasets/genome/%s",
     "GND_LANDINGPAGE_ENDPOINT": "https://lobid.org/gnd/%s",
     "GND_METADATA_ENDPOINT": "https://lobid.org/gnd/%s.json",
+    "HAL_LANDINGPAGE_ENDPOINT": "https://hal.science/%s",
     "Hdl_LANDINGPAGE_ENDPOINT": "https://hdl.handle.net/%s",
     "HDl_METADATA_ENDPOINT": "https://hdl.handle.net/%s?noredirect",
     "IdRef_LANDINGPAGE_ENDPOINT": "https://www.idref.fr/%s",
