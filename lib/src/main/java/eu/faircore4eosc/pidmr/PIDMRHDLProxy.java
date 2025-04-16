@@ -14,6 +14,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -334,40 +335,55 @@ public class PIDMRHDLProxy extends HDLProxy {
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
         HDLServletRequest hdl = new HDLServletRequest(this, req, resp, resolver);
-        if (!hdl.hdl.contains("PIDMR@")) {
-            if (req.getQueryString() != null) {
-                if (req.getQueryString().contains("&")) {
-                    pid = req.getQueryString().split("&")[0];
-                    display = req.getQueryString().split("&")[1];
-                } else {
-                    pid = req.getQueryString();
-                }
-                if (display == null) {
-                    display = config.getResolvingModes().get("RESOLVING_MODE_LANDINGPAGE");
-                }
-                if (pid != null) {
-                    pidType = checkPidType(pid);
-                    if (!checkForSupportedResolutionMode(resp, display, pidType) && !pidType.equalsIgnoreCase("doi")) {
-                        handleHttpError(400, resp, "Resolution mode is not supported.");
-                        return;
-                    }
 
-                    if (pidType != null) {
-                        try {
-                            dispatchPidHandlingMode(pid, display, hdl, pidType, resp);
-                        } catch (HandleException e) {
-                            throw new RuntimeException(e);
-                        }
-                        return;
-                    } else {
-                        errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
-                        return;
+        if (hdl.hdl.equals("syncProviders")) {
+            fetchProvidersFileForUIList(resp);
+            return;
+        }
+
+        if (req.getQueryString() != null) {
+            if (req.getQueryString().contains("&")) {
+                pid = req.getQueryString().split("&")[0];
+                display = req.getQueryString().split("&")[1];
+            } else {
+                pid = req.getQueryString();
+            }
+            if (display == null) {
+                display = config.getResolvingModes().get("RESOLVING_MODE_LANDINGPAGE");
+            }
+            if (pid != null) {
+                pidType = checkPidType(pid);
+                if (!checkForSupportedResolutionMode(resp, display, pidType) && !pidType.equalsIgnoreCase("doi")) {
+                    handleHttpError(400, resp, "Resolution mode is not supported.");
+                    return;
+                }
+
+                if (pidType != null) {
+                    try {
+                        dispatchPidHandlingMode(pid, display, hdl, pidType, resp);
+                    } catch (HandleException e) {
+                        throw new RuntimeException(e);
                     }
+                    return;
+                } else {
+                    errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
+                    return;
                 }
             }
         }
         if (handleSpecial(req, resp)) return;
         super.doGet(req, resp);
+    }
+
+    private void fetchProvidersFileForUIList(HttpServletResponse resp) throws IOException {
+        String providersFilePath = config.getProvidersFilePath();
+        Path jsonPath = Paths.get(providersFilePath);
+        byte[] bytes = Files.readAllBytes(jsonPath);
+        String jsonString = new String(bytes, StandardCharsets.UTF_8);
+        JsonObject json = JsonParser.parseString(jsonString).getAsJsonObject();
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        resp.getWriter().write(json.toString());
     }
 
     public String sanitizeInput(String input) {
