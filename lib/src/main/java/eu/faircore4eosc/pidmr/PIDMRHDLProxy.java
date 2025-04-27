@@ -625,7 +625,6 @@ public class PIDMRHDLProxy extends HDLProxy {
                         try {
                             influxDB.enableBatch(10, 200, TimeUnit.MILLISECONDS);
                             Point point = Point.measurement(measurement)
-                                    .time(System.currentTimeMillis() / 1000L, TimeUnit.MILLISECONDS)
                                     .addField("time_stamp", getLogDateTime())
                                     .addField("pid_endpoint", redirectUrl)
                                     .addField("pid_type", pidType)
@@ -667,7 +666,7 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private String getLogDateTime() {
         LocalDateTime localDateTime = LocalDateTime.now();
-        DateTimeFormatter dateTimeFormat = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+        DateTimeFormatter dateTimeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         String formattedDateTime = localDateTime.format(dateTimeFormat);
         return formattedDateTime;
     }
