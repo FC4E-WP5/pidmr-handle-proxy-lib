@@ -31,9 +31,12 @@ public class ConfigLoader {
         private String influxdbConfigFile;
         private String providersFilePath;
         private String providersBackupFilePath;
-        private Map<String, String> endpoints;
         private Map<String, String> mimTypes;
         private Map<String, String> resolvingModes;
+
+        private Map<String, String> handleProviderHavingSubproviders;
+
+        private Map<String, String> handlePIDResourceMode;
 
         public String getHdlServerConfigPath() {
             return hdlServerConfigPath;
@@ -51,16 +54,20 @@ public class ConfigLoader {
             return providersBackupFilePath;
         }
 
-        public Map<String, String> getEndpoints() {
-            return endpoints;
-        }
-
         public Map<String, String> getMimTypes() {
             return mimTypes;
         }
 
         public Map<String, String> getResolvingModes() {
             return resolvingModes;
+        }
+
+        public Map<String, String> handleProviderHavingSubproviders() {
+            return handleProviderHavingSubproviders;
+        }
+
+        public Map<String, String> handlePIDResourceMode() {
+            return handlePIDResourceMode;
         }
     }
 }
