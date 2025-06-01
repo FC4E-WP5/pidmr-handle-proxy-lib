@@ -368,12 +368,7 @@ public class PIDMRHDLProxy extends HDLProxy {
             throw new FileNotFoundException("Provider file not found or not a regular file: " + providersFilePath);
         }
         try (FileReader reader = new FileReader(providersFilePath)) {
-
             return JsonParser.parseReader(reader).getAsJsonObject();
-
-
-//            JsonParser jsonParser = new JsonParser();
-//            return jsonParser.parse(reader).getAsJsonObject();
         }
     }
 
