@@ -1,4 +1,4 @@
-image: maven:3-openjdk-8
+image: eclipse-temurin:21-jdk
 
 stages:
 - deploy
@@ -6,7 +6,7 @@ stages:
 
 default:
   before_script:
-    - 'which ssh-agent || ( apk add --update openssh-client )'
+    - apt-get update && apt-get install -y openssh-client gnupg
     - mkdir -p ~/.ssh
     - eval $(ssh-agent -s)
     - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
