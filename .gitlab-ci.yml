@@ -1,4 +1,4 @@
-image: openjdk:21
+image: eclipse-temurin:21-jdk
 
 stages:
 - deploy
