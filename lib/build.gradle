@@ -14,7 +14,7 @@ ext {
     handleVersion = '9.3.1'
     servletApiVersion = '3.1.0'
     influxdbVersion = '2.24'
-    javaVersion = 21
+    javaVersion = 8
 }
 
 dependencies {
