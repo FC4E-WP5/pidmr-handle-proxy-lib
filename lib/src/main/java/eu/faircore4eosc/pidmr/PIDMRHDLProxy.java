@@ -50,6 +50,7 @@ import org.owasp.html.Sanitizers;
 
 import eu.faircore4eosc.pidmr.ConfigLoader;
 import eu.faircore4eosc.pidmr.services.ProviderService;
+import eu.faircore4eosc.pidmr.utilities.PidUtils;
 
 import net.cnri.util.StreamTable;
 import net.handle.apps.servlet_proxy.HDLProxy;
@@ -89,9 +90,6 @@ public class PIDMRHDLProxy extends HDLProxy {
     private static final String CROSSREF = "crossref";
     private static final String DATACITE = "datacite";
     private static final String JALC = "jalc";
-
-    // Precompile the common regex pattern for efficiency
-    private static final Pattern CANONICAL_FORMAT_PATTERN = Pattern.compile("https:\\/\\/[^\\/]+\\/(?:doi:)?(.+)", Pattern.CASE_INSENSITIVE);
 
     // Thread-local storage for per-request response
     private static final ThreadLocal<HttpServletResponse> responseHolder = new ThreadLocal<>();
@@ -358,15 +356,6 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    public boolean isPidMatchingPattern(String pid, String regex) {
-        return matchPidToRegexPattern(pid, regex).find();
-    }
-
-    private static Matcher matchPidToRegexPattern(String pid, String regex) {
-        Pattern pattern = Pattern.compile(regex.trim(), Pattern.CASE_INSENSITIVE);
-        return pattern.matcher(pid.trim());
-    }
-
     public String handleUrnDeChResourceMode(String urnMetadataURL) throws IOException {
         HttpServletResponse resp = responseHolder.get();
         String redirectUrl = null;
@@ -585,18 +574,6 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    public static String checkForCanonicalFormat(String pid) {
-        return extractCanonicalPid(pid).orElse(pid);
-    }
-
-    public static Optional<String> extractCanonicalPid(String pid) {
-        Matcher matcher = CANONICAL_FORMAT_PATTERN.matcher(pid.trim());
-        if (matcher.find()) {
-            return Optional.of(matcher.group(1));
-        }
-        return Optional.empty();
-    }
-
     private void noDoiProvider(HttpServletResponse resp) throws IOException {
         errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "DOI provider can not be determind.");
     }
@@ -746,16 +723,6 @@ public class PIDMRHDLProxy extends HDLProxy {
         return null;
     }
 
-    private String extractDocumentId(String pid) {
-        String regex = "(\\d+)$";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(pid);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        return null;
-    }
-
     public String handleZenodoResourceMode(String metadataUrl) throws IOException {
         HttpServletResponse resp = responseHolder.get();
         String jsonContent = fetchContent(metadataUrl);
@@ -850,7 +817,9 @@ public class PIDMRHDLProxy extends HDLProxy {
             case RESOLVING_MODE_LANDINGPAGE:
                 if (endpoint != null) {
                     if (pidType.equals("10.5281/zenodo")) {
-                        pid = extractDocumentId(pid);
+                        pid = PidUtils.extractDocumentId(pid);
+                    } else if (pidType.equals("RAiD")) {
+                        pid = PidUtils.checkForCanonicalFormat(pid);
                     }
                 }
                 redirectUrl = endpoint != null ? String.format(endpoint, pid) : null;
@@ -861,14 +830,18 @@ public class PIDMRHDLProxy extends HDLProxy {
                         pid = pid.split(":")[1];
                     }
                     if (pidType.equals("10.5281/zenodo")) {
-                        pid = extractDocumentId(pid);
+                        pid = PidUtils.extractDocumentId(pid);
+                    } else if (pidType.equals("RAiD")) {
+                        pid = PidUtils.checkForCanonicalFormat(pid);
                     }
                     redirectUrl = String.format(endpoint, pid);
                 }
                 break;
             case RESOLVING_MODE_RESOURCE:
                 if (pidType.equals("10.5281/zenodo")) {
-                    pid = extractDocumentId(pid);
+                    pid = PidUtils.extractDocumentId(pid);
+                } else if (pidType.equals("RAiD")) {
+                    pid = PidUtils.checkForCanonicalFormat(pid);
                 }
                 try {
                     if (pidType.equals("GDZ")) {
