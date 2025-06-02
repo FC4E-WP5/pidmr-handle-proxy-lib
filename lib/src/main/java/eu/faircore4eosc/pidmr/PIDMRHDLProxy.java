@@ -49,6 +49,7 @@ import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
 
 import eu.faircore4eosc.pidmr.ConfigLoader;
+import eu.faircore4eosc.pidmr.services.ProviderService;
 
 import net.cnri.util.StreamTable;
 import net.handle.apps.servlet_proxy.HDLProxy;
@@ -95,12 +96,23 @@ public class PIDMRHDLProxy extends HDLProxy {
     // Thread-local storage for per-request response
     private static final ThreadLocal<HttpServletResponse> responseHolder = new ThreadLocal<>();
 
+    private ProviderService providerService;
+
     @Override
     public void init() throws ServletException {
         super.init();
-        ConfigLoader configLoader = new ConfigLoader("config.json");
         try {
+            ConfigLoader configLoader = new ConfigLoader("config.json");
             config = configLoader.loadConfig();
+            String providersFilePath = config.getProvidersFilePath();
+            String content = new String(
+                    Files.readAllBytes(Paths.get(providersFilePath)),
+                    StandardCharsets.UTF_8
+            );
+            JsonObject json = JsonParser.parseString(content).getAsJsonObject();
+            JsonArray providersArray = json.getAsJsonArray("content");
+            this.providerService = new ProviderService();
+            this.providerService.loadProviders(providersArray);
         } catch (IOException e) {
             super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Failed to load configuration: " + e.getMessage());
             throw new ServletException("Failed to load configuration", e);
@@ -112,7 +124,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         responseHolder.set(resp);
         try {
             HDLServletRequest hdl = new HDLServletRequest(this, req, resp, resolver);
-            String pidType = checkPidType(hdl.hdl);
+            String pidType = providerService.detectPidType(hdl.hdl);
             if (pidType == null) {
                 errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
                 return;
@@ -161,7 +173,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                     display = config.getResolvingModes().get("RESOLVING_MODE_LANDINGPAGE");
                 }
                 if (pid != null) {
-                    pidType = checkPidType(pid);
+                    String pidType = providerService.detectPidType(pid);
                     if (!checkForSupportedResolutionMode(resp, display, pidType) && !pidType.equalsIgnoreCase("doi")) {
                         handleHttpError(400, resp, "Resolution mode is not supported.");
                         return;
@@ -334,32 +346,6 @@ public class PIDMRHDLProxy extends HDLProxy {
     private String getProviderType(JsonElement provider) {
         String pidType = provider.getAsJsonObject().get("type").getAsString();
         return pidType;
-    }
-
-    private String checkPidType(String pid) throws IOException {
-        recognizedPid = null;
-        try {
-            JsonArray providers = getProviders();
-            providers.forEach(provider -> {
-                JsonArray regexesArray = getProviderElementGivenTheType("regexes", provider);
-                String pidType = getProviderType(provider);
-                regexesArray.forEach(regexesItem -> {
-                    String regex = regexesItem.toString().replace("\"", "").replace("\\\\", "\\");
-                    if (!regex.startsWith("^")) {
-                        regex = "^" + regex;
-                    }
-                    if (!regex.endsWith("$")) {
-                        regex = regex + "$";
-                    }
-                    if (isPidMatchingPattern(pid, regex)) {
-                        recognizedPid = pidType;
-                    }
-                });
-            });
-        } catch (Exception e) {
-            super.logError(RotatingAccessLog.ERRLOG_LEVEL_FATAL, "PID type could not be determined: " + e.getMessage());
-        }
-        return recognizedPid;
     }
 
     private JsonObject readProvidersFile(String providersFilePath) throws IOException {
