@@ -4,6 +4,7 @@ import java.io.*;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -62,7 +63,6 @@ import net.handle.apps.servlet_proxy.RotatingAccessLog;
 import net.handle.hdllib.*;
 import net.handle.server.Main;
 import net.handle.server.servletcontainer.HandleServerInterface;
-
 
 public class PIDMRHDLProxy extends HDLProxy {
     public static RequestProcessor resolver = null;
@@ -364,11 +364,12 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    public String handleUrnDeChResourceMode(String urnMetadataURL) throws IOException {
+    public String handleUrnDeChResourceMode(String apiUrl) throws IOException {
         HttpServletResponse resp = responseHolder.get();
         String redirectUrl = null;
         try {
-            URL apiUrl = new URL(urnMetadataURL);
+            URI uri = URI.create(apiUrl);
+            URL apiUrl = uri.toURL();
             HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
             connection.setRequestMethod("GET");
             int responseCode = connection.getResponseCode();
@@ -402,7 +403,8 @@ public class PIDMRHDLProxy extends HDLProxy {
         } catch (Throwable t) {
         }
         try {
-            URL apiUrl = new URL(redirectUrl);
+            URI uri = URI.create(redirectUrl);
+            URL apiUrl = uri.toURL();
             HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
             connection.setConnectTimeout(TIME_OUT);
             connection.setReadTimeout(TIME_OUT);
@@ -411,7 +413,8 @@ public class PIDMRHDLProxy extends HDLProxy {
                 hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
             } else if (redirectHttpCodes.contains(responseCode)) {
                 String newUrl = connection.getHeaderField("Location");
-                URL url = new URL(newUrl);
+                URI uri = URI.create(newUrl);
+                URL apiUrl = uri.toURL();
                 connection = (HttpURLConnection) url.openConnection();
                 responseCode = connection.getResponseCode();
                 hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, newUrl);
@@ -531,7 +534,8 @@ public class PIDMRHDLProxy extends HDLProxy {
         String mimType = getMimType(cnType);
         String crossrefUrl = "https://api.crossref.org/works/" + pid + "/transform/" + mimType;
         try {
-            URL apiUrl = new URL(crossrefUrl);
+            URI uri = URI.create(crossrefUrl);
+            URL apiUrl = uri.toURL();
             HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
             connection.setRequestMethod("GET");
             int responseCode = connection.getResponseCode();
@@ -668,11 +672,12 @@ public class PIDMRHDLProxy extends HDLProxy {
         return null;
     }
 
-    public String handleCrossrefResourceMode(String url) throws IOException {
+    public String handleCrossrefResourceMode(String apiUrl) throws IOException {
         HttpServletResponse resp = responseHolder.get();
         String redirectUrl = null;
         try {
-            URL apiUrl = new URL(url);
+            URI uri = URI.create(apiUrl);
+            URL apiUrl = uri.toURL();
             HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
             connection.setRequestMethod("GET");
             int responseCode = connection.getResponseCode();
@@ -705,10 +710,11 @@ public class PIDMRHDLProxy extends HDLProxy {
         return redirectUrl;
     }
 
-    private String fetchContent(String url) throws IOException {
+    private String fetchContent(String apiUrl) throws IOException {
         HttpServletResponse resp = responseHolder.get();
         try {
-            URL apiUrl = new URL(url);
+            URI uri = URI.create(apiUrl);
+            URL apiUrl = uri.toURL();
             HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
             connection.setRequestMethod("GET");
             int responseCode = connection.getResponseCode();
