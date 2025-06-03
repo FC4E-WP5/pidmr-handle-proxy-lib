@@ -2,7 +2,8 @@ image: eclipse-temurin:21-jdk
 
 stages:
   - deploy
-
+  - test
+  - 
 before_script:
   - apt-get update
   - apt-get install -y openssh-client
