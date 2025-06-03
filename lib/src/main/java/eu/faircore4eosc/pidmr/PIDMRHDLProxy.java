@@ -4,6 +4,7 @@ import java.io.*;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -62,7 +63,6 @@ import net.handle.apps.servlet_proxy.RotatingAccessLog;
 import net.handle.hdllib.*;
 import net.handle.server.Main;
 import net.handle.server.servletcontainer.HandleServerInterface;
-
 
 public class PIDMRHDLProxy extends HDLProxy {
     public static RequestProcessor resolver = null;
@@ -364,12 +364,13 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    public String handleUrnDeChResourceMode(String urnMetadataURL) throws IOException {
+    public String handleUrnDeChResourceMode(String apiUrl) throws IOException {
         HttpServletResponse resp = responseHolder.get();
         String redirectUrl = null;
         try {
-            URL apiUrl = new URL(urnMetadataURL);
-            HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
+            URI connUri = URI.create(apiUrl);
+            URL connUrl = connUri.toURL();
+            HttpURLConnection connection = (HttpURLConnection) connUrl.openConnection();
             connection.setRequestMethod("GET");
             int responseCode = connection.getResponseCode();
             if (responseCode == 200) {
@@ -402,19 +403,21 @@ public class PIDMRHDLProxy extends HDLProxy {
         } catch (Throwable t) {
         }
         try {
-            URL apiUrl = new URL(redirectUrl);
-            HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
+            URI connTestUri = URI.create(redirectUrl);
+            URL connTestUrl = connTestUri.toURL();
+            HttpURLConnection connection = (HttpURLConnection) connTestUrl.openConnection();
             connection.setConnectTimeout(TIME_OUT);
             connection.setReadTimeout(TIME_OUT);
             int responseCode = connection.getResponseCode();
             if (responseCode == 200) {
                 hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
             } else if (redirectHttpCodes.contains(responseCode)) {
-                String newUrl = connection.getHeaderField("Location");
-                URL url = new URL(newUrl);
-                connection = (HttpURLConnection) url.openConnection();
+                String locationUrl = connection.getHeaderField("Location");
+                URI connUri = URI.create(locationUrl);
+                URL connUrl = connUri.toURL();
+                connection = (HttpURLConnection) connUrl.openConnection();
                 responseCode = connection.getResponseCode();
-                hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, newUrl);
+                hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, locationUrl);
             } else {
                 handleHttpError(responseCode, resp, connection.getResponseMessage());
             }
@@ -531,7 +534,8 @@ public class PIDMRHDLProxy extends HDLProxy {
         String mimType = getMimType(cnType);
         String crossrefUrl = "https://api.crossref.org/works/" + pid + "/transform/" + mimType;
         try {
-            URL apiUrl = new URL(crossrefUrl);
+            URI uri = URI.create(crossrefUrl);
+            URL apiUrl = uri.toURL();
             HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
             connection.setRequestMethod("GET");
             int responseCode = connection.getResponseCode();
@@ -668,12 +672,13 @@ public class PIDMRHDLProxy extends HDLProxy {
         return null;
     }
 
-    public String handleCrossrefResourceMode(String url) throws IOException {
+    public String handleCrossrefResourceMode(String apiUrl) throws IOException {
         HttpServletResponse resp = responseHolder.get();
         String redirectUrl = null;
         try {
-            URL apiUrl = new URL(url);
-            HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
+            URI connUri = URI.create(apiUrl);
+            URL connUrl = connUri.toURL();
+            HttpURLConnection connection = (HttpURLConnection) connUrl.openConnection();
             connection.setRequestMethod("GET");
             int responseCode = connection.getResponseCode();
             if (responseCode == 200) {
@@ -700,16 +705,17 @@ public class PIDMRHDLProxy extends HDLProxy {
                 handleHttpError(responseCode, resp, "Failed to fetch data from Crossref. HTTP response code: " + responseCode);
             }
         } catch (Exception e) {
-            handleHttpError(500, resp, "Internal server error while resolving Crossref resource URL: " + url);
+            handleHttpError(500, resp, "Internal server error while resolving Crossref resource URL: " + apiUrl);
         }
         return redirectUrl;
     }
 
-    private String fetchContent(String url) throws IOException {
+    private String fetchContent(String apiUrl) throws IOException {
         HttpServletResponse resp = responseHolder.get();
         try {
-            URL apiUrl = new URL(url);
-            HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
+            URI connUri = URI.create(apiUrl);
+            URL connUrl = connUri.toURL();
+            HttpURLConnection connection = (HttpURLConnection) connUrl.openConnection();
             connection.setRequestMethod("GET");
             int responseCode = connection.getResponseCode();
             if (responseCode == 200) {
@@ -726,7 +732,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                 handleHttpError(responseCode, resp, "Failed to fetch data. HTTP response code: " + responseCode);
             }
         } catch (Exception e) {
-            handleHttpError(500, resp, "Internal server error while fetching content from URL: " + url);
+            handleHttpError(500, resp, "Internal server error while fetching content from URL: " + apiUrl);
         }
         return null;
     }
