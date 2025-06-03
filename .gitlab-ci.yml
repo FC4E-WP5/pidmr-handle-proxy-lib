@@ -2,7 +2,6 @@ image: eclipse-temurin:21-jdk
 
 stages:
   - deploy
-  - test
 
 before_script:
   - apt-get update
@@ -21,7 +20,7 @@ deploy:
     - scp lib/build/libs/PIDMRHDLProxy-0.0.1-SNAPSHOT.jar lib/build/libs/influxdb-2.24.jar $SSH_LOGIN:/home/cloud
     - ssh $SSH_LOGIN "$PIDMR_PROXY_RESTART_SCRIPT"
 
-test:
+sast:
   stage: test
 include:
   - template: Security/SAST.gitlab-ci.yml
