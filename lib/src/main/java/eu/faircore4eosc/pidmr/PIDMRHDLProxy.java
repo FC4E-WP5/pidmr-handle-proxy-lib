@@ -51,6 +51,8 @@ import org.owasp.html.Sanitizers;
 import eu.faircore4eosc.pidmr.ConfigLoader;
 import eu.faircore4eosc.pidmr.services.ProviderService;
 import eu.faircore4eosc.pidmr.utilities.PidUtils;
+import eu.faircore4eosc.pidmr.services.ResourceResolutionService;
+import eu.faircore4eosc.pidmr.services.PIDMRHandler;
 
 import net.cnri.util.StreamTable;
 import net.handle.apps.servlet_proxy.HDLProxy;
@@ -96,6 +98,10 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private ProviderService providerService;
 
+    private PIDMRHandler pidmrHandler;
+
+    private ResourceResolutionService resourceResolutionService;
+
     @Override
     public void init() throws ServletException {
         super.init();
@@ -111,6 +117,8 @@ public class PIDMRHDLProxy extends HDLProxy {
             JsonArray providersArray = json.getAsJsonArray("content");
             this.providerService = new ProviderService();
             this.providerService.loadProviders(providersArray);
+            this.pidmrHandler = new PIDMRHandler(providerService);
+            this.resourceResolutionService = new ResourceResolutionService(pidmrHandler);
         } catch (IOException e) {
             super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Failed to load configuration: " + e.getMessage());
             throw new ServletException("Failed to load configuration", e);
@@ -811,69 +819,51 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    private void handleRedirect(String pidType, String pid, String display, HDLServletRequest hdl, HttpServletResponse resp, String endpoint) throws IOException {
-        String redirectUrl = null;
-        switch (display) {
-            case RESOLVING_MODE_LANDINGPAGE:
-                if (endpoint != null) {
-                    if (pidType.equals("10.5281/zenodo")) {
-                        pid = PidUtils.extractDocumentId(pid);
-                    } else if (pidType.equals("RAiD")) {
-                        pid = PidUtils.checkForCanonicalFormat(pid);
-                    }
-                }
-                redirectUrl = endpoint != null ? String.format(endpoint, pid) : null;
-                break;
-            case RESOLVING_MODE_METADATA:
-                if (endpoint != null) {
-                    if (pidType.equals("arXiv")) {
-                        pid = pid.split(":")[1];
-                    }
-                    if (pidType.equals("10.5281/zenodo")) {
-                        pid = PidUtils.extractDocumentId(pid);
-                    } else if (pidType.equals("RAiD")) {
-                        pid = PidUtils.checkForCanonicalFormat(pid);
-                    }
-                    redirectUrl = String.format(endpoint, pid);
-                }
-                break;
-            case RESOLVING_MODE_RESOURCE:
-                if (pidType.equals("10.5281/zenodo")) {
-                    pid = PidUtils.extractDocumentId(pid);
-                } else if (pidType.equals("RAiD")) {
-                    pid = PidUtils.checkForCanonicalFormat(pid);
-                }
-                try {
-                    if (pidType.equals("GDZ")) {
-                        redirectUrl = String.format(endpoint, pid, pid);
-                    } else {
-                        redirectUrl = String.format(endpoint, pid);
-                    }
-                } catch (MissingFormatArgumentException e) {
-                    errorHandling(resp, 500, "Server error: Invalid format string in endpoint.");
-                    return;
-                }
-                if (config.handlePIDResourceMode().containsKey(pidType)) {
-                    String methodName = config.handlePIDResourceMode().get(pidType);
-                    if (methodName != null) {
-                        try {
-                            Method method = this.getClass().getMethod(methodName, String.class);
-                            redirectUrl = (String) method.invoke(this, redirectUrl);
-                            if (redirectUrl == null) {
-                                return;
-                            }
-                        } catch (Exception e) {
-                            errorHandling(resp, 500, String.format("Invoking method %s failed.", methodName));
-                            return;
-                        }
-                    }
-                }
-                break;
-        }
-        if (redirectUrl != null) {
-            redirect(pidType, pid, display, redirectUrl, hdl, resp);
-        } else {
+    private void handleRedirect(String pidType, String pid, String display,
+                                HDLServletRequest hdl, HttpServletResponse resp, String endpoint) throws IOException {
+
+        if (endpoint == null) {
             handleHttpError(404, resp, "No redirect endpoint found.");
+            return;
         }
+        pid = processPid(pidType, pid, display);
+        String redirectUrl;
+        try {
+            redirectUrl = buildRedirectUrl(pidType, pid, endpoint);
+        } catch (MissingFormatArgumentException e) {
+            errorHandling(resp, 500, "Server error: Invalid format string in endpoint.");
+            return;
+        }
+        if (RESOLVING_MODE_RESOURCE.equals(display)
+                && config.handlePIDResourceMode().containsKey(pidType)) {
+            redirectUrl = resourceResolutionService.handle(pidType, redirectUrl, resp);
+            if (redirectUrl == null) {
+                return;
+            }
+        }
+
+        redirect(pidType, pid, display, redirectUrl, hdl, resp);
+    }
+
+    private String processPid(String pidType, String pid, String display) {
+        // arXiv-Sonderbehandlung nur bei METADATA
+        if (RESOLVING_MODE_METADATA.equals(display) && pidType.equals("arXiv")) {
+            pid = pid.split(":")[1];
+        }
+        switch (pidType) {
+            case "10.5281/zenodo":
+                return PidUtils.extractDocumentId(pid);
+            case "RAiD":
+                return PidUtils.checkForCanonicalFormat(pid);
+            default:
+                return pid;
+        }
+    }
+
+    private String buildRedirectUrl(String pidType, String pid, String endpoint) {
+        if ("GDZ".equals(pidType)) {
+            return String.format(endpoint, pid, pid);
+        }
+        return String.format(endpoint, pid);
     }
 }
