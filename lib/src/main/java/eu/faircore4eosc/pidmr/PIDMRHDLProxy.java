@@ -2,29 +2,16 @@ package eu.faircore4eosc.pidmr;
 
 import java.io.*;
 import java.lang.reflect.Method;
-import java.net.HttpURLConnection;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.MissingFormatArgumentException;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -36,16 +23,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.influxdb.InfluxDB;
-import org.influxdb.InfluxDBFactory;
-import org.influxdb.dto.Point;
-import org.influxdb.dto.Query;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
 
@@ -55,52 +32,30 @@ import eu.faircore4eosc.pidmr.utilities.PidUtils;
 import eu.faircore4eosc.pidmr.services.ResourceResolutionService;
 import eu.faircore4eosc.pidmr.services.PIDMRHandler;
 
-import net.cnri.util.StreamTable;
 import net.handle.apps.servlet_proxy.HDLProxy;
 import net.handle.apps.servlet_proxy.HDLServletRequest;
 import net.handle.apps.servlet_proxy.HDLServletRequest.ResponseType;
 import net.handle.apps.servlet_proxy.RotatingAccessLog;
 import net.handle.hdllib.*;
-import net.handle.server.Main;
 import net.handle.server.servletcontainer.HandleServerInterface;
 
 public class PIDMRHDLProxy extends HDLProxy {
     public static RequestProcessor resolver = null;
-
     private String display = null;
     private String pid = null;
     private final String RESOLVING_MODE_LANDINGPAGE = "landingpage";
     private final String RESOLVING_MODE_METADATA = "metadata";
     private final String RESOLVING_MODE_RESOURCE = "resource";
 
-    private final String RESOLVING_MODE_CN = "cn";
-    private final String CN_BIBTEX = "bibtex";
-    private final String CN_TURTLE = "turtle";
-    private final String CN_RDF = "rdf";
-    private final String CN_CITATION = "citation";
     private String pidType = null;
-    private String recognizedPid = null;
     private boolean supportedMode = false;
-    private final Integer TIME_OUT = 10000;
-
-    protected HandleServerInterface handleServer;
     List<Integer> redirectHttpCodes = Arrays.asList(300, 301, 302, 303, 304, 305, 306, 307, 308);
-
     private ConfigLoader.Config config;
-
-    private static final String DOI_PREFIX = "doi:";
-    private static final String CROSSREF = "crossref";
-    private static final String DATACITE = "datacite";
-    private static final String JALC = "jalc";
-
-    // Thread-local storage for per-request response
     private static final ThreadLocal<HttpServletResponse> responseHolder = new ThreadLocal<>();
-
     private ProviderService providerService;
-
     private PIDMRHandler pidmrHandler;
-
     private ResourceResolutionService resourceResolutionService;
+    private RedirectService redirectService;
 
     @Override
     public void init() throws ServletException {
@@ -119,6 +74,7 @@ public class PIDMRHDLProxy extends HDLProxy {
             this.providerService.loadProviders(providersArray);
             this.pidmrHandler = new PIDMRHandler(providerService);
             this.resourceResolutionService = new ResourceResolutionService(pidmrHandler);
+            this.redirectService = new RedirectService(config);
         } catch (IOException e) {
             super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Failed to load configuration: " + e.getMessage());
             throw new ServletException("Failed to load configuration", e);
@@ -301,11 +257,15 @@ public class PIDMRHDLProxy extends HDLProxy {
                     Method method = this.getClass().getMethod(methodName, String.class);
                     subProvider = (String) method.invoke(this, pid);
                 } catch (Exception e) {
-                    handleHttpError(500, resp, "Error invoking sub-provider method: " + methodName + " - " + e.getMessage());
+                    handleHttpError(500, resp, "Error determinig sub-provider.");
+                    return;
                 }
             }
         }
         String endpoint = resolveEndpoint(pidType, subProvider, display);
+        if (endpoint == null) {
+            return;
+        }
         handleRedirect(subProvider, pid, display, hdl, resp, endpoint);
     }
 
@@ -364,230 +324,8 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    public String handleUrnDeChResourceMode(String apiUrl) throws IOException {
-        HttpServletResponse resp = responseHolder.get();
-        String redirectUrl = null;
-        try {
-            URI connUri = URI.create(apiUrl);
-            URL connUrl = connUri.toURL();
-            HttpURLConnection connection = (HttpURLConnection) connUrl.openConnection();
-            connection.setRequestMethod("GET");
-            int responseCode = connection.getResponseCode();
-            if (responseCode == 200) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                String inputLine;
-                StringBuilder content = new StringBuilder();
-                while ((inputLine = reader.readLine()) != null) {
-                    content.append(inputLine);
-                }
-                reader.close();
-                connection.disconnect();
-                String jsonContent = content.toString();
-                JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
-                JsonArray urlsArray = jsonObject.getAsJsonArray("urls");
-                redirectUrl = urnnbn(urlsArray);
-            } else {
-                handleHttpError(responseCode, resp, "Failed to fetch URN metadata, HTTP code: " + responseCode);
-            }
-        } catch (Exception e) {
-            super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Error fetching urn:nbn:de/ch resource url: " + e.getMessage());
-            handleHttpError(500, resp, "Error fetching urn:nbn:de/ch resource url: " + e.getMessage());
-        }
-        return redirectUrl;
-    }
-
-    private void redirect(String pidType, String pid, String display, String redirectUrl, HDLServletRequest hdl, HttpServletResponse resp) throws IOException {
-        String addr = "";
-        try {
-            addr = hdl.getRemoteAddr();
-        } catch (Throwable t) {
-        }
-        try {
-            URI connTestUri = URI.create(redirectUrl);
-            URL connTestUrl = connTestUri.toURL();
-            HttpURLConnection connection = (HttpURLConnection) connTestUrl.openConnection();
-            connection.setConnectTimeout(TIME_OUT);
-            connection.setReadTimeout(TIME_OUT);
-            int responseCode = connection.getResponseCode();
-            if (responseCode == 200) {
-                hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, redirectUrl);
-            } else if (redirectHttpCodes.contains(responseCode)) {
-                String locationUrl = connection.getHeaderField("Location");
-                URI connUri = URI.create(locationUrl);
-                URL connUrl = connUri.toURL();
-                connection = (HttpURLConnection) connUrl.openConnection();
-                responseCode = connection.getResponseCode();
-                hdl.sendHTTPRedirect(ResponseType.MOVED_PERMANENTLY, locationUrl);
-            } else {
-                handleHttpError(responseCode, resp, connection.getResponseMessage());
-            }
-            logPIDMRAccess(pidType, pid, display, responseCode, addr, AbstractMessage.RC_SUCCESS, hdl.getResponseTime());
-            logIntoInfluxDB(pidType, pid, display, redirectUrl, hdl.getResponseTime() + "ms", responseCode);
-        } catch (IOException e) {
-            handleHttpError(500, resp, e.getMessage());
-            logPIDMRAccess(pidType, pid, display, 500, addr, AbstractMessage.RC_ERROR, hdl.getResponseTime());
-            logIntoInfluxDB(pidType, pid, display, redirectUrl,hdl.getResponseTime() + "ms", 500);
-        }
-    }
-
-    public void logIntoInfluxDB(String pidType, String pid, String display, String redirectUrl, String responseTime, Integer status) {
-        String influxdbConfigFile = config.getInfluxdbConfigFile();
-        StreamTable configTable = new StreamTable();
-        File serverDir = new File(HSG.DEFAULT_CONFIG_SUBDIR_NAME);
-        try {
-            File configFile = new File(serverDir, influxdbConfigFile);
-            if (configFile.exists()) {
-                try {
-                    configTable.readFromFile(configFile);
-                    if (configTable.containsKey("influxdb_config")) {
-                        Map<String, Object> influxdbConfig = (Map<String, Object>) configTable.get("influxdb_config");
-                        String bindAddress = (String) influxdbConfig.get("bind_address");
-                        String bindPort = (String) influxdbConfig.get("bind_port");
-                        String username = (String) influxdbConfig.get("username");
-                        String password = (String) influxdbConfig.get("password");
-                        String databaseName = (String) influxdbConfig.get("databaseName");
-                        String measurement = (String) influxdbConfig.get("measurement");
-                        String num_threads = (String) influxdbConfig.get("num_threads");
-                        int numThreads = Integer.parseInt(num_threads);
-                        String url = bindAddress + ":" + bindPort;
-                        InfluxDB influxDB = InfluxDBFactory.connect(url, username, password);
-                        influxDB.setDatabase(databaseName);
-                        try {
-                            influxDB.enableBatch(10, 200, TimeUnit.MILLISECONDS);
-                            Point point = Point.measurement(measurement)
-                                    .addField("time_stamp", getLogDateTime())
-                                    .addField("pid_endpoint", redirectUrl)
-                                    .addField("pid_type", pidType)
-                                    .addField("pid_id", pid)
-                                    .addField("pid_mode", display)
-                                    .addField("pid_resolver_status", status)
-                                    .addField("responseTime", responseTime)
-                                    .build();
-                            try {
-                                ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-                            } catch (NumberFormatException e) {
-                                System.err.println("Invalid number format for num_threads: " + num_threads);
-                            }
-                            ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-                            CompletableFuture.runAsync(() -> {
-                                try {
-                                    influxDB.write(point);
-                                } catch (Exception e) {
-                                    System.err.println("Write failed: " + e.getMessage());
-                                }
-                            }, executor).thenRun(() -> {
-                            });
-                            executor.shutdown();
-                        } catch (Exception e) {
-                            super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Error transmiting the data to influxdb: " + e.getMessage());
-                        } finally {
-                            influxDB.close();
-                        }
-                    }
-                } catch (Exception e) {
-                    System.err.println("Error reading configuration: " + e);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace(System.err);
-            System.err.println("Error loading configuration: " + e);
-        }
-    }
-
-    private String getLogDateTime() {
-        LocalDateTime localDateTime = LocalDateTime.now();
-        DateTimeFormatter dateTimeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        String formattedDateTime = localDateTime.format(dateTimeFormat);
-        return formattedDateTime;
-    }
-    
     private void handleHttpError(int responseCode, HttpServletResponse resp, String errmsg) throws IOException {
         errorHandling(resp,responseCode, errmsg);
-    }
-
-    private void logPIDMRAccess(String pidType, String pid, String display, int status, String addr, int hdlResponseCode,long responseTime) throws IOException {
-        HttpServletResponse resp = responseHolder.get();
-        Main main = null;
-        String hdlServerConfigPath = config.getHdlServerConfigPath();
-        StreamTable configTable = new StreamTable();
-        File serverDir = new File(hdlServerConfigPath);
-        try {
-            configTable.readFromFile(new File(serverDir, HSG.CONFIG_FILE_NAME));
-        } catch (Exception e) {
-            handleHttpError(500, resp, "Error reading configuration: " + e);
-            return;
-        }
-        try {
-            main = new Main(serverDir, configTable);
-            main.logAccess("HTTP:PIDMRHDLProxy", InetAddress.getByName(addr), AbstractMessage.OC_RESOLUTION, hdlResponseCode, pidType + ";" + pid + ";" + display + ";" + status, responseTime);
-        } catch (Exception e) {
-            handleHttpError(500, resp, "Error logging PIDMR access: " + e.getMessage());
-        }
-    }
-
-    private void sendError(int statusCode, HttpServletResponse resp, String message) throws IOException {
-        handleHttpError(statusCode, resp, message);
-    }
-
-    private String handleCnMode(String pid, String cnType) throws IOException {
-        HttpServletResponse resp = responseHolder.get();
-        String mimType = getMimType(cnType);
-        String crossrefUrl = "https://api.crossref.org/works/" + pid + "/transform/" + mimType;
-        try {
-            URI uri = URI.create(crossrefUrl);
-            URL apiUrl = uri.toURL();
-            HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
-            connection.setRequestMethod("GET");
-            int responseCode = connection.getResponseCode();
-            if (responseCode == 200) {
-                return crossrefUrl;
-            } else {
-                return "https://data.crosscite.org/" + mimType + pid;
-            }
-        } catch (Exception e) {
-            handleHttpError(500, resp, "Internal server error while resolving CN mode for PID: " + pid);
-            return null;
-        }
-    }
-
-    public String urnnbn(JsonArray resources) throws IOException {
-        int size = resources.size();
-        if (size == 1) {
-            JsonElement url = resources.get(0).getAsJsonObject().get("URL");
-            String redirectUrl = url.toString().replace("\"", "");
-            return redirectUrl;
-        } else {
-            JsonArray urlJsonArray = new JsonArray();
-            for (JsonElement link : resources) {
-                JsonObject linkObject = link.getAsJsonObject();
-                String url = linkObject.get("url").getAsString();
-                urlJsonArray.add(url);
-            }
-            sendJsonResponse(urlJsonArray.toString());
-            return null;
-        }
-    }
-
-    public String handleResourceRedirect(JsonArray resources) throws IOException {
-        if (resources.size() == 0) return null;
-        JsonObject firstObj = resources.get(0).getAsJsonObject();
-        String fieldName = firstObj.has("url") ? "url" : "URL";
-        if (resources.size() == 1) {
-            return firstObj.get(fieldName).getAsString();
-        } else {
-            JsonArray urlJsonArray = new JsonArray();
-            for (JsonElement element : resources) {
-                JsonObject obj = element.getAsJsonObject();
-                String url = obj.get(fieldName).getAsString();
-                urlJsonArray.add(url);
-            }
-            sendJsonResponse(urlJsonArray.toString());
-            return null;
-        }
-    }
-
-    private void noDoiProvider(HttpServletResponse resp) throws IOException {
-        errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "DOI provider can not be determind.");
     }
 
     public String getDoiProvider(String pid) {
@@ -613,201 +351,6 @@ public class PIDMRHDLProxy extends HDLProxy {
             }
         }
         return doiProvider;
-    }
-
-    private String getMimType(String cnType) {
-        String mimType = null;
-        switch (cnType) {
-            case CN_BIBTEX:
-                mimType = config.getMimTypes().get("CN_BIBTEX_MIMTYPE");
-                break;
-            case CN_TURTLE:
-                mimType = config.getMimTypes().get("CN_TURTLE_MIMTYPE");
-                break;
-            case CN_RDF:
-                mimType = config.getMimTypes().get("CN_RDF_MIMTYPE");
-                break;
-            case CN_CITATION:
-                mimType = config.getMimTypes().get("CN_CITATION_MIMTYPE");
-                break;
-            default:
-                break;
-        }
-        return mimType;
-    }
-
-    public String handleDataciteResourceMode(String url) throws IOException {
-        HttpServletResponse resp = responseHolder.get();
-        try {
-            String jsonContent = fetchContent(url);
-            if (jsonContent != null) {
-                JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
-                String redirectUrl = jsonObject.getAsJsonObject("data").getAsJsonObject("attributes").get("url").toString();
-                if (redirectUrl != null) {
-                    redirectUrl = redirectUrl.toString().replace("\"", "");
-                    return redirectUrl;
-                }
-            }
-        } catch (Exception e) {
-            handleHttpError(500, resp, "Internal server error while resolving DataCite resource URL: " + url);
-        }
-        return null;
-    }
-
-    public JsonArray getCrossrefResourceEndpoint(String url) {
-        try {
-            String jsonContent = fetchContent(url);
-            if (jsonContent != null) {
-                JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
-                JsonObject messageObject = jsonObject.getAsJsonObject("message");
-                if (messageObject.has("link") && messageObject.get("link").isJsonArray()) {
-                    return messageObject.getAsJsonArray("link");
-                } else {
-                    super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "No resource link for crossref doi found.");
-                }
-            }
-        } catch (Exception e) {
-            super.logError(RotatingAccessLog.ERRLOG_LEVEL_FATAL, "Crossref resource link could not be fetched.");
-        }
-        return null;
-    }
-
-    public String handleCrossrefResourceMode(String apiUrl) throws IOException {
-        HttpServletResponse resp = responseHolder.get();
-        String redirectUrl = null;
-        try {
-            URI connUri = URI.create(apiUrl);
-            URL connUrl = connUri.toURL();
-            HttpURLConnection connection = (HttpURLConnection) connUrl.openConnection();
-            connection.setRequestMethod("GET");
-            int responseCode = connection.getResponseCode();
-            if (responseCode == 200) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                String inputLine;
-                StringBuilder content = new StringBuilder();
-                while ((inputLine = reader.readLine()) != null) {
-                    content.append(inputLine);
-                }
-                reader.close();
-                connection.disconnect();
-                String jsonContent = content.toString();
-                if (jsonContent != null) {
-                    JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
-                    JsonObject messageObject = jsonObject.getAsJsonObject("message");
-                    if (messageObject.has("link") && messageObject.get("link").isJsonArray()) {
-                        JsonArray urlsArray = messageObject.getAsJsonArray("link");
-                        redirectUrl = urnnbn(urlsArray);
-                    } else {
-                        super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "No resource link for crossref doi found.");
-                    }
-                }
-            } else {
-                handleHttpError(responseCode, resp, "Failed to fetch data from Crossref. HTTP response code: " + responseCode);
-            }
-        } catch (Exception e) {
-            handleHttpError(500, resp, "Internal server error while resolving Crossref resource URL: " + apiUrl);
-        }
-        return redirectUrl;
-    }
-
-    private String fetchContent(String apiUrl) throws IOException {
-        HttpServletResponse resp = responseHolder.get();
-        try {
-            URI connUri = URI.create(apiUrl);
-            URL connUrl = connUri.toURL();
-            HttpURLConnection connection = (HttpURLConnection) connUrl.openConnection();
-            connection.setRequestMethod("GET");
-            int responseCode = connection.getResponseCode();
-            if (responseCode == 200) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                String inputLine;
-                StringBuilder content = new StringBuilder();
-                while ((inputLine = reader.readLine()) != null) {
-                    content.append(inputLine);
-                }
-                reader.close();
-                connection.disconnect();
-                return content.toString();
-            } else {
-                handleHttpError(responseCode, resp, "Failed to fetch data. HTTP response code: " + responseCode);
-            }
-        } catch (Exception e) {
-            handleHttpError(500, resp, "Internal server error while fetching content from URL: " + apiUrl);
-        }
-        return null;
-    }
-
-    public String handleZenodoResourceMode(String metadataUrl) throws IOException {
-        HttpServletResponse resp = responseHolder.get();
-        String jsonContent = fetchContent(metadataUrl);
-        String redirectUrl = null;
-        if (jsonContent != null) {
-            JsonArray metadataFiles = extractMetadataFiles(jsonContent);
-            if (metadataFiles != null) {
-                redirectUrl = processMetadataFiles(metadataFiles);
-            } else {
-                handleHttpError(500, resp, "No metadata found in metadata file.");
-                super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "No metadata found in metadata file.");
-            }
-        }
-        return redirectUrl;
-    }
-
-    private JsonArray extractMetadataFiles(String jsonContent) {
-        JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
-        if (jsonObject.has("files") && jsonObject.get("files").isJsonArray()) {
-            return jsonObject.getAsJsonArray("files");
-        }
-        return null;
-    }
-
-    private String processMetadataFiles(JsonArray metadataFiles) throws IOException {
-        int size = metadataFiles.size();
-        if (size == 1) {
-            String redirectUrl = metadataFiles
-                    .get(0)
-                    .getAsJsonObject()
-                    .get("links")
-                    .getAsJsonObject()
-                    .get("self")
-                    .getAsString();
-            return redirectUrl;
-        } else {
-            JsonArray urlJsonArray = new JsonArray();
-            for (JsonElement link : metadataFiles) {
-                String url = link.getAsJsonObject()
-                        .get("links")
-                        .getAsJsonObject()
-                        .get("self")
-                        .getAsString();
-                urlJsonArray.add(url);
-            }
-            return sendJsonResponse(urlJsonArray.toString());
-        }
-    }
-
-    private String sendJsonResponse(String jsonArrayString) throws IOException {
-        HttpServletResponse resp = responseHolder.get();
-        if (resp != null) {
-            try {
-                resp.setCharacterEncoding("UTF-8");
-                resp.setContentType("application/json");
-                resp.getWriter().println(jsonArrayString);
-                resp.getWriter().flush();
-                return null;
-            } catch (IOException e) {
-                super.logError(RotatingAccessLog.ERRLOG_LEVEL_FATAL, "Failed to send resource link list: " + e.getMessage());
-                try {
-                    errorHandling(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing the request.");
-                } catch (IOException ioException) {
-                    super.logError(RotatingAccessLog.ERRLOG_LEVEL_FATAL, "Failed to send error response to client: " + e.getMessage());
-                }
-            }
-        } else {
-            errorHandling(resp, 500, "error");
-            return null;
-        }
-        return null;
     }
 
     private HandleValue[] resolveHandle(String handle) throws HandleException {
@@ -847,12 +390,10 @@ public class PIDMRHDLProxy extends HDLProxy {
                 return;
             }
         }
-
-        redirect(pidType, pid, display, redirectUrl, hdl, resp);
+        redirectService.redirect(resp, redirectUrl, pid, pidType, display, hdl);
     }
 
     private String processPid(String pidType, String pid, String display) {
-        // arXiv-Sonderbehandlung nur bei METADATA
         if (RESOLVING_MODE_METADATA.equals(display) && pidType.equals("arXiv")) {
             pid = pid.split(":")[1];
         }
