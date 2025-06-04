@@ -27,17 +27,18 @@ import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
 
 import eu.faircore4eosc.pidmr.ConfigLoader;
-import eu.faircore4eosc.pidmr.services.ProviderService;
-import eu.faircore4eosc.pidmr.utilities.PidUtils;
-import eu.faircore4eosc.pidmr.services.ResourceResolutionService;
+import eu.faircore4eosc.pidmr.services.EndpointResolver;
+import eu.faircore4eosc.pidmr.utilities.ErrorHandler;
 import eu.faircore4eosc.pidmr.services.PIDMRHandler;
+import eu.faircore4eosc.pidmr.utilities.PidUtils;
+import eu.faircore4eosc.pidmr.services.ProviderService;
+import eu.faircore4eosc.pidmr.services.ResourceResolutionService;
 
 import net.handle.apps.servlet_proxy.HDLProxy;
 import net.handle.apps.servlet_proxy.HDLServletRequest;
 import net.handle.apps.servlet_proxy.HDLServletRequest.ResponseType;
 import net.handle.apps.servlet_proxy.RotatingAccessLog;
 import net.handle.hdllib.*;
-import net.handle.server.servletcontainer.HandleServerInterface;
 
 public class PIDMRHDLProxy extends HDLProxy {
     public static RequestProcessor resolver = null;
@@ -46,16 +47,15 @@ public class PIDMRHDLProxy extends HDLProxy {
     private final String RESOLVING_MODE_LANDINGPAGE = "landingpage";
     private final String RESOLVING_MODE_METADATA = "metadata";
     private final String RESOLVING_MODE_RESOURCE = "resource";
-
     private String pidType = null;
     private boolean supportedMode = false;
-    List<Integer> redirectHttpCodes = Arrays.asList(300, 301, 302, 303, 304, 305, 306, 307, 308);
     private ConfigLoader.Config config;
     private static final ThreadLocal<HttpServletResponse> responseHolder = new ThreadLocal<>();
     private ProviderService providerService;
     private PIDMRHandler pidmrHandler;
     private ResourceResolutionService resourceResolutionService;
     private RedirectService redirectService;
+    private EndpointResolver endpointResolver;
 
     @Override
     public void init() throws ServletException {
@@ -79,6 +79,11 @@ public class PIDMRHDLProxy extends HDLProxy {
             super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Failed to load configuration: " + e.getMessage());
             throw new ServletException("Failed to load configuration", e);
         }
+        try {
+            this.endpointResolver = new EndpointResolver(config.getProvidersFilePath());
+        } catch (IOException e) {
+            throw new ServletException("Failed to load provider definitions", e);
+        }
     }
 
     @Override
@@ -88,11 +93,11 @@ public class PIDMRHDLProxy extends HDLProxy {
             HDLServletRequest hdl = new HDLServletRequest(this, req, resp, resolver);
             String pidType = providerService.detectPidType(hdl.hdl);
             if (pidType == null) {
-                errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
+                ErrorHandler.badRequest(resp, "PID type not found.");
                 return;
             }
-            if (!checkForSupportedResolutionMode(resp, hdl.params.getParameter("display"), pidType) && !pidType.equalsIgnoreCase("doi")) {
-                handleHttpError(400, resp, "Resolution mode is not supported.");
+            if (!endpointResolver.isResolutionModeSupported(pidType, hdl.params.getParameter("display")) && !pidType.equalsIgnoreCase("doi")) {
+                ErrorHandler.badRequest(resp, "Resolution mode not found.");
                 return;
             }
             defaultPidTypeHandling(hdl, resp, pidType);
@@ -111,13 +116,12 @@ public class PIDMRHDLProxy extends HDLProxy {
             dispatchPidHandlingMode(pid, display, hdl, pidType, resp);
         } catch (HandleException e) {
             super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Error dispatching PID handling mode: " + e.getMessage());
-            errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "Error dispatching PID handling mode.");
+            ErrorHandler.badRequest(resp, "Error dispatching PID handling mode.");
         }
     }
 
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
-        responseHolder.set(resp);
         try {
             HDLServletRequest hdl = new HDLServletRequest(this, req, resp, resolver);
             if (hdl.hdl.equals("syncProviders")) {
@@ -136,19 +140,19 @@ public class PIDMRHDLProxy extends HDLProxy {
                 }
                 if (pid != null) {
                     String pidType = providerService.detectPidType(pid);
-                    if (!checkForSupportedResolutionMode(resp, display, pidType) && !pidType.equalsIgnoreCase("doi")) {
-                        handleHttpError(400, resp, "Resolution mode is not supported.");
+                    if (!endpointResolver.isResolutionModeSupported(pidType, display) && !pidType.equalsIgnoreCase("doi")) {
+                        ErrorHandler.badRequest(resp, "Resolution mode not found.");
                         return;
                     }
                     if (pidType != null) {
                         try {
                             dispatchPidHandlingMode(pid, display, hdl, pidType, resp);
                         } catch (HandleException e) {
-                            handleHttpError(500, resp, "Error handling PID: " + e.getMessage());
+                            throw new RuntimeException(e);
                         }
                         return;
                     } else {
-                        errorHandling(resp, HttpServletResponse.SC_BAD_REQUEST, "PID type can not be determind.");
+                        ErrorHandler.badRequest(resp, "PID type not found.");
                         return;
                     }
                 }
@@ -157,57 +161,6 @@ public class PIDMRHDLProxy extends HDLProxy {
             super.doGet(req, resp);
         } finally {
             responseHolder.remove();
-        }
-    }
-
-    private String resolveEndpoint(String providerId, String subProviderId, String displayMode) throws IOException {
-        HttpServletResponse resp = responseHolder.get();
-        try {
-            JsonArray providers = getProviders();
-            for (int i = 0; i < providers.size(); i++) {
-                JsonObject provider = providers.get(i).getAsJsonObject();
-                if (providerId.equalsIgnoreCase(provider.get("type").getAsString())) {
-                    if (!provider.has("resolution_modes")) {
-                        handleHttpError(404, resp, String.format(
-                                "Provider '%s' does not define any 'resolution_modes'.",
-                                providerId
-                        ));
-                        return null;
-                    }
-                    JsonArray resolutionModes = provider.getAsJsonArray("resolution_modes");
-                    for (int j = 0; j < resolutionModes.size(); j++) {
-                        JsonObject mode = resolutionModes.get(j).getAsJsonObject();
-                        if (displayMode.equalsIgnoreCase(mode.get("mode").getAsString())) {
-                            JsonArray endpoints = mode.getAsJsonArray("endpoints");
-                            for (int k = 0; k < endpoints.size(); k++) {
-                                JsonObject endpoint = endpoints.get(k).getAsJsonObject();
-                                if (subProviderId.equalsIgnoreCase(endpoint.get("provider").getAsString())) {
-                                    return endpoint.get("link").getAsString();
-                                }
-                            }
-                            handleHttpError(404, resp, String.format(
-                                    "No endpoint found for sub-provider '%s' " +
-                                            "in display mode '%s' for provider '%s'.",
-                                    subProviderId, displayMode, providerId
-                            ));
-                            return null;
-                        }
-                    }
-                    handleHttpError(404, resp, String.format(
-                            "Display mode '%s' not found for provider '%s'.",
-                            displayMode, providerId
-                    ));
-                    return null;
-                }
-            }
-            handleHttpError(404, resp, String.format(
-                    "Provider '%s' not found in providers.json.",
-                    providerId
-            ));
-            return null;
-        } catch (Exception e) {
-            handleHttpError(500, resp, "Internal server error while resolving endpoint.");
-            return null;
         }
     }
 
@@ -230,24 +183,6 @@ public class PIDMRHDLProxy extends HDLProxy {
         return policy.sanitize(input);
     }
 
-    private boolean checkForSupportedResolutionMode(HttpServletResponse resp, String display, String pidType) {
-        supportedMode = false;
-        JsonArray providers = getProviders();
-        providers.forEach(provider -> {
-            JsonArray resolutionModes = getProviderElementGivenTheType("resolution_modes", provider);
-            String tempPidType = getProviderType(provider);
-            if (tempPidType.equals(pidType)) {
-                resolutionModes.forEach(resolutionMode -> {
-                    String tempResolutionMode = resolutionMode.getAsJsonObject().get("mode").getAsString();
-                    if (tempResolutionMode.equals(display)) {
-                        supportedMode = true;
-                    }
-                });
-            }
-        });
-        return supportedMode;
-    }
-
     private void dispatchPidHandlingMode(String pid, String display, HDLServletRequest hdl, String pidType, HttpServletResponse resp) throws IOException, ServletException, HandleException {
         String subProvider = pidType;
         if (config.handleProviderHavingSubproviders().containsKey(pidType)) {
@@ -257,100 +192,49 @@ public class PIDMRHDLProxy extends HDLProxy {
                     Method method = this.getClass().getMethod(methodName, String.class);
                     subProvider = (String) method.invoke(this, pid);
                 } catch (Exception e) {
-                    handleHttpError(500, resp, "Error determinig sub-provider.");
+                    ErrorHandler.serverError(resp, "Error determining sub-provider.");
                     return;
                 }
             }
         }
-        String endpoint = resolveEndpoint(pidType, subProvider, display);
-        if (endpoint == null) {
+        String resolvedEndpoint = endpointResolver.resolve(pidType, subProvider, display);
+        if (resolvedEndpoint == null) {
             return;
         }
-        handleRedirect(subProvider, pid, display, hdl, resp, endpoint);
+        handleRedirect(subProvider, pid, display, hdl, resp, resolvedEndpoint);
     }
 
-    private void errorHandling(HttpServletResponse resp, int errorCode, String errorMessage) throws IOException {
-        resp.setContentType("application/json");
-        resp.setCharacterEncoding("UTF-8");
-        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("errorCode", errorCode);
-        errorResponse.put("error", errorMessage);
-        ObjectMapper objectMapper = new ObjectMapper();
-        String jsonResponse = objectMapper.writeValueAsString(errorResponse);
-        resp.getWriter().write(jsonResponse);
-    }
-
-    private JsonArray getProviders() {
-        File providersFile = new File(config.getProvidersFilePath());
-        File providersBackupFile = new File(config.getProvidersBackupFilePath());
-        String providersFilePath;
-        if (providersFile.exists() || providersBackupFile.exists()) {
-            if (providersFile.exists()) {
-                providersFilePath = config.getProvidersFilePath();
-            } else {
-                providersFilePath = config.getProvidersBackupFilePath();
-            }
-            try {
-                JsonObject providersFileContent = readProvidersFile(providersFilePath);
-                if (providersFileContent != null) {
-                    JsonArray providers = (JsonArray) providersFileContent.get("content");
-                    return providers;
-                }
-            } catch (Exception e) {
-                super.logError(RotatingAccessLog.ERRLOG_LEVEL_FATAL, "Providers list could not be fetched: " + e.getMessage());
-            }
-        }
-        return null;
-    }
-
-    private JsonArray getProviderElementGivenTheType(String providerElement, JsonElement provider) {
-        JsonArray providerElementArray = provider.getAsJsonObject().get(providerElement).getAsJsonArray();
-        return providerElementArray;
-    }
-
-    private String getProviderType(JsonElement provider) {
-        String pidType = provider.getAsJsonObject().get("type").getAsString();
-        return pidType;
-    }
-
-    private JsonObject readProvidersFile(String providersFilePath) throws IOException {
-        Path path = Paths.get(providersFilePath);
-        if (!Files.exists(path) || !Files.isRegularFile(path)) {
-            throw new FileNotFoundException("Provider file not found or not a regular file: " + providersFilePath);
-        }
-        try (FileReader reader = new FileReader(providersFilePath)) {
-            return JsonParser.parseReader(reader).getAsJsonObject();
-        }
-    }
-
-    private void handleHttpError(int responseCode, HttpServletResponse resp, String errmsg) throws IOException {
-        errorHandling(resp,responseCode, errmsg);
-    }
-
+    /**
+     * Dynamically invoked via reflection, e.g., through configuration entry:
+     * { "doi": "getDoiProvider" }
+     *
+     * Attempts to extract a sub-provider identifier from the handle record
+     * of the DOI prefix (e.g., "10.1234").
+     *
+     * @param pid The full PID string (e.g., "10.1234/abcd5678")
+     * @return The resolved sub-provider ID or null if not found
+     */
     public String getDoiProvider(String pid) {
-        String doiProvider = null;
-        if (pid.contains("/")) {
-            String doiProviderId = pid.split("/")[0];
-            HandleValue[] vals;
-            try {
-                vals = resolveHandle(doiProviderId);
-            } catch (HandleException e) {
-                return doiProvider;
-            }
-            String dataStr;
-            for (HandleValue val : vals) {
-                String typeAsStr = val.getTypeAsString();
-                if (typeAsStr.equals("HS_SERV")) {
-                    dataStr = val.getDataAsString();
+        if (pid == null || !pid.contains("/")) return null;
+
+        String doiPrefix = pid.split("/")[0];
+
+        try {
+            HandleValue[] handleValues = resolveHandle(doiPrefix);
+            for (HandleValue val : handleValues) {
+                if ("HS_SERV".equals(val.getTypeAsString())) {
+                    String dataStr = val.getDataAsString();
                     if (dataStr != null && dataStr.contains("/")) {
-                        doiProvider = dataStr.toLowerCase().split("/")[1];
-                        break;
+                        return dataStr.toLowerCase().split("/")[1];
                     }
                 }
             }
+        } catch (HandleException e) {
+            logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL,
+                    "Failed to resolve DOI sub-provider for '" + pid + "': " + e.getMessage());
         }
-        return doiProvider;
+
+        return null;
     }
 
     private HandleValue[] resolveHandle(String handle) throws HandleException {
@@ -372,7 +256,7 @@ public class PIDMRHDLProxy extends HDLProxy {
                                 HDLServletRequest hdl, HttpServletResponse resp, String endpoint) throws IOException {
 
         if (endpoint == null) {
-            handleHttpError(404, resp, "No redirect endpoint found.");
+            ErrorHandler.notFound(resp, "No redirect endpoint found.");
             return;
         }
         pid = processPid(pidType, pid, display);
@@ -380,7 +264,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         try {
             redirectUrl = buildRedirectUrl(pidType, pid, endpoint);
         } catch (MissingFormatArgumentException e) {
-            errorHandling(resp, 500, "Server error: Invalid format string in endpoint.");
+            ErrorHandler.serverError(resp, "Invalid format string in endpoint.");
             return;
         }
         if (RESOLVING_MODE_RESOURCE.equals(display)
