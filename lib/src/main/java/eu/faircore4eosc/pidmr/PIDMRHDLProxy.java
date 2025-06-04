@@ -23,16 +23,14 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import org.owasp.html.PolicyFactory;
-import org.owasp.html.Sanitizers;
-
 import eu.faircore4eosc.pidmr.ConfigLoader;
 import eu.faircore4eosc.pidmr.services.EndpointResolver;
-import eu.faircore4eosc.pidmr.utilities.ErrorHandler;
 import eu.faircore4eosc.pidmr.services.PIDMRHandler;
-import eu.faircore4eosc.pidmr.utilities.PidUtils;
 import eu.faircore4eosc.pidmr.services.ProviderService;
 import eu.faircore4eosc.pidmr.services.ResourceResolutionService;
+import eu.faircore4eosc.pidmr.utilities.ErrorHandler;
+import eu.faircore4eosc.pidmr.utilities.InputSanitizer;
+import eu.faircore4eosc.pidmr.utilities.PidUtils;
 
 import net.handle.apps.servlet_proxy.HDLProxy;
 import net.handle.apps.servlet_proxy.HDLServletRequest;
@@ -109,9 +107,9 @@ public class PIDMRHDLProxy extends HDLProxy {
     private void defaultPidTypeHandling(HDLServletRequest hdl, HttpServletResponse resp, String pidType) throws IOException, ServletException {
         String display = hdl.params.getParameter("display");
         if (display == null || display.trim().isEmpty()) {
-            display = sanitizeInput(config.getResolvingModes().get("RESOLVING_MODE_LANDINGPAGE"));
+            display = InputSanitizer.sanitize(config.getResolvingModes().get("RESOLVING_MODE_LANDINGPAGE"));
         }
-        String pid = sanitizeInput(hdl.hdl);
+        String pid = InputSanitizer.sanitize(hdl.hdl);
         try {
             dispatchPidHandlingMode(pid, display, hdl, pidType, resp);
         } catch (HandleException e) {
@@ -173,14 +171,6 @@ public class PIDMRHDLProxy extends HDLProxy {
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
         resp.getWriter().write(json.toString());
-    }
-
-    public String sanitizeInput(String input) {
-        if (input == null) {
-            return null;
-        }
-        PolicyFactory policy = Sanitizers.FORMATTING.and(Sanitizers.LINKS);
-        return policy.sanitize(input);
     }
 
     private void dispatchPidHandlingMode(String pid, String display, HDLServletRequest hdl, String pidType, HttpServletResponse resp) throws IOException, ServletException, HandleException {
