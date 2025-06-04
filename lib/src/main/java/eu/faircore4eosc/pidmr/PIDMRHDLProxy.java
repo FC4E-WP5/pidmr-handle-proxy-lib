@@ -6,9 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.MissingFormatArgumentException;
@@ -17,24 +14,23 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import eu.faircore4eosc.pidmr.ConfigLoader;
 import eu.faircore4eosc.pidmr.services.EndpointResolver;
 import eu.faircore4eosc.pidmr.services.PIDMRHandler;
+import eu.faircore4eosc.pidmr.services.ProviderFileService;
 import eu.faircore4eosc.pidmr.services.ProviderService;
 import eu.faircore4eosc.pidmr.services.ResourceResolutionService;
 import eu.faircore4eosc.pidmr.utilities.ErrorHandler;
 import eu.faircore4eosc.pidmr.utilities.InputSanitizer;
 import eu.faircore4eosc.pidmr.utilities.PidUtils;
+import eu.faircore4eosc.pidmr.utilities.ResponseUtils;
 
 import net.handle.apps.servlet_proxy.HDLProxy;
 import net.handle.apps.servlet_proxy.HDLServletRequest;
-import net.handle.apps.servlet_proxy.HDLServletRequest.ResponseType;
 import net.handle.apps.servlet_proxy.RotatingAccessLog;
 import net.handle.hdllib.*;
 
@@ -163,14 +159,8 @@ public class PIDMRHDLProxy extends HDLProxy {
     }
 
     private void fetchProvidersFileForUIList(HttpServletResponse resp) throws IOException {
-        String providersFilePath = config.getProvidersFilePath();
-        Path jsonPath = Paths.get(providersFilePath);
-        byte[] bytes = Files.readAllBytes(jsonPath);
-        String jsonString = new String(bytes, StandardCharsets.UTF_8);
-        JsonObject json = JsonParser.parseString(jsonString).getAsJsonObject();
-        resp.setContentType("application/json");
-        resp.setCharacterEncoding("UTF-8");
-        resp.getWriter().write(json.toString());
+        JsonObject json = ProviderFileService.loadProviderFile(config.getProvidersFilePath());
+        ResponseUtils.writeJsonResponse(resp, json);
     }
 
     private void dispatchPidHandlingMode(String pid, String display, HDLServletRequest hdl, String pidType, HttpServletResponse resp) throws IOException, ServletException, HandleException {
@@ -194,21 +184,9 @@ public class PIDMRHDLProxy extends HDLProxy {
         handleRedirect(subProvider, pid, display, hdl, resp, resolvedEndpoint);
     }
 
-    /**
-     * Dynamically invoked via reflection, e.g., through configuration entry:
-     * { "doi": "getDoiProvider" }
-     *
-     * Attempts to extract a sub-provider identifier from the handle record
-     * of the DOI prefix (e.g., "10.1234").
-     *
-     * @param pid The full PID string (e.g., "10.1234/abcd5678")
-     * @return The resolved sub-provider ID or null if not found
-     */
     public String getDoiProvider(String pid) {
         if (pid == null || !pid.contains("/")) return null;
-
         String doiPrefix = pid.split("/")[0];
-
         try {
             HandleValue[] handleValues = resolveHandle(doiPrefix);
             for (HandleValue val : handleValues) {
@@ -223,7 +201,6 @@ public class PIDMRHDLProxy extends HDLProxy {
             logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL,
                     "Failed to resolve DOI sub-provider for '" + pid + "': " + e.getMessage());
         }
-
         return null;
     }
 
@@ -244,7 +221,6 @@ public class PIDMRHDLProxy extends HDLProxy {
 
     private void handleRedirect(String pidType, String pid, String display,
                                 HDLServletRequest hdl, HttpServletResponse resp, String endpoint) throws IOException {
-
         if (endpoint == null) {
             ErrorHandler.notFound(resp, "No redirect endpoint found.");
             return;
