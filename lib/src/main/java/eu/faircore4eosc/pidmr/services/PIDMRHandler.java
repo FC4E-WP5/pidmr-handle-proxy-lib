@@ -23,15 +23,11 @@ public class PIDMRHandler {
     ) throws IOException {
         JsonObject json = ExternalApiClient.fetchJson(url);
         if (json == null) return null;
-
         List<String> links = extractor.apply(json);
         if (links == null || links.isEmpty()) return null;
-
         if (links.size() == 1) {
-            return links.get(0); // Redirect-Ziel
+            return links.get(0);
         }
-
-        // Mehrere → als JSON ausgeben
         ResponseUtils.writeJsonResponse(resp, links);
         return null;
     }
