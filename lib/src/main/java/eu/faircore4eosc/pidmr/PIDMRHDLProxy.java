@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.MissingFormatArgumentException;
+import java.util.ArrayList;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -17,6 +18,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonElement;
 
 import eu.faircore4eosc.pidmr.ConfigLoader;
 import eu.faircore4eosc.pidmr.services.EndpointResolver;
@@ -42,7 +44,6 @@ public class PIDMRHDLProxy extends HDLProxy {
     private final String RESOLVING_MODE_METADATA = "metadata";
     private final String RESOLVING_MODE_RESOURCE = "resource";
     private String pidType = null;
-    private boolean supportedMode = false;
     private ConfigLoader.Config config;
     private static final ThreadLocal<HttpServletResponse> responseHolder = new ThreadLocal<>();
     private ProviderService providerService;
@@ -67,7 +68,12 @@ public class PIDMRHDLProxy extends HDLProxy {
             this.providerService = new ProviderService();
             this.providerService.loadProviders(providersArray);
             this.pidmrHandler = new PIDMRHandler(providerService);
-            this.resourceResolutionService = new ResourceResolutionService(pidmrHandler);
+
+            List<JsonObject> providers = new ArrayList<>();
+            for (JsonElement element : providersArray) {
+                providers.add(element.getAsJsonObject());
+            }
+            this.resourceResolutionService = new ResourceResolutionService(providers);
             this.redirectService = new RedirectService(config);
         } catch (IOException e) {
             super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Failed to load configuration: " + e.getMessage());
@@ -181,12 +187,24 @@ public class PIDMRHDLProxy extends HDLProxy {
         if (resolvedEndpoint == null) {
             return;
         }
-        handleRedirect(subProvider, pid, display, hdl, resp, resolvedEndpoint);
+        handleRedirect(pidType, subProvider, pid, display, hdl, resp, resolvedEndpoint);
     }
 
+    /**
+     * Dynamically invoked via reflection, e.g., through configuration entry:
+     * { "doi": "getDoiProvider" }
+     *
+     * Attempts to extract a sub-provider identifier from the handle record
+     * of the DOI prefix (e.g., "10.1234").
+     *
+     * @param pid The full PID string (e.g., "10.1234/abcd5678")
+     * @return The resolved sub-provider ID or null if not found
+     */
     public String getDoiProvider(String pid) {
         if (pid == null || !pid.contains("/")) return null;
+
         String doiPrefix = pid.split("/")[0];
+
         try {
             HandleValue[] handleValues = resolveHandle(doiPrefix);
             for (HandleValue val : handleValues) {
@@ -219,7 +237,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
     }
 
-    private void handleRedirect(String pidType, String pid, String display,
+    private void handleRedirect(String pidType, String subProvider, String pid, String display,
                                 HDLServletRequest hdl, HttpServletResponse resp, String endpoint) throws IOException {
         if (endpoint == null) {
             ErrorHandler.notFound(resp, "No redirect endpoint found.");
@@ -233,12 +251,11 @@ public class PIDMRHDLProxy extends HDLProxy {
             ErrorHandler.serverError(resp, "Invalid format string in endpoint.");
             return;
         }
-        if (RESOLVING_MODE_RESOURCE.equals(display)
-                && config.handlePIDResourceMode().containsKey(pidType)) {
-            redirectUrl = resourceResolutionService.handle(pidType, redirectUrl, resp);
-            if (redirectUrl == null) {
-                return;
-            }
+        if (RESOLVING_MODE_RESOURCE.equalsIgnoreCase(display)
+                && resourceResolutionService.canHandle(pidType, subProvider)) {
+            redirectUrl = resourceResolutionService.handle(pidType, subProvider, redirectUrl, resp);
+            if (redirectUrl == null) return;
+
         }
         redirectService.redirect(resp, redirectUrl, pid, pidType, display, hdl);
     }
