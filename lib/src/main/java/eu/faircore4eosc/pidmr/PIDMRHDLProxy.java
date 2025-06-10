@@ -140,6 +140,10 @@ public class PIDMRHDLProxy extends HDLProxy {
                 }
                 if (pid != null) {
                     String pidType = providerService.detectPidType(pid);
+                    if (pidType == null) {
+                        ErrorHandler.badRequest(resp, "PID type not found.");
+                        return;
+                    }
                     if (!endpointResolver.isResolutionModeSupported(pidType, display) && !pidType.equalsIgnoreCase("doi")) {
                         ErrorHandler.badRequest(resp, "Resolution mode not found.");
                         return;
