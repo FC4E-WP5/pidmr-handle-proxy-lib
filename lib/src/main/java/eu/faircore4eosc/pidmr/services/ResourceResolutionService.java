@@ -1,6 +1,8 @@
 package eu.faircore4eosc.pidmr.services;
 
 import com.google.gson.*;
+
+import eu.faircore4eosc.pidmr.services.JsonFetcher;
 import eu.faircore4eosc.pidmr.utilities.MetadataLinkExtractor;
 import eu.faircore4eosc.pidmr.utilities.ResponseUtils;
 
@@ -11,9 +13,17 @@ import java.util.*;
 public class ResourceResolutionService {
 
     private final List<JsonObject> providers;
+    private final JsonFetcher fetcher;
+
     public ResourceResolutionService(List<JsonObject> providers) {
-        this.providers = providers;
+        this(providers, ExternalApiClient::fetchJson);
     }
+
+    public ResourceResolutionService(List<JsonObject> providers, JsonFetcher fetcher) {
+        this.providers = providers;
+        this.fetcher = fetcher;
+    }
+
     public String handle(String pidType, String subProvider, String apiUrl, HttpServletResponse resp) throws IOException {
         List<String> paths = getPathsForSubProvider(pidType, subProvider);
         if (paths.isEmpty()) return null;

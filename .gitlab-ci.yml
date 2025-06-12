@@ -1,17 +1,29 @@
 image: eclipse-temurin:21-jdk
 
 stages:
-  - deploy
   - test
+  - deploy
 
 before_script:
   - apt-get update
   - apt-get install -y openssh-client
-  - 'which ssh-agent || ( apk add --update openssh-client )'
+  - 'which ssh-agent || ( apt-get install -y openssh-client )'
   - mkdir -p ~/.ssh
   - eval $(ssh-agent -s)
   - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+
+test:
+  stage: test
+  script:
+    - ./gradlew test
+  artifacts:
+    when: always
+    reports:
+      junit: lib/build/test-results/test/TEST-*.xml
+    paths:
+      - lib/build/reports/tests/
+      - lib/build/test-results/
 
 deploy:
   stage: deploy
@@ -20,8 +32,12 @@ deploy:
     - 'curl --header "JOB-TOKEN: $PIDMR_TOKEN" --upload-file lib/build/libs/PIDMRHDLProxy-0.0.1-SNAPSHOT.jar "https://gitlab-ce.gwdg.de/api/v4/projects/24967/packages/maven/pidmrhdlproxy-0.1.jar"'
     - scp lib/build/libs/PIDMRHDLProxy-0.0.1-SNAPSHOT.jar lib/build/libs/influxdb-2.24.jar $SSH_LOGIN:/home/cloud
     - ssh $SSH_LOGIN "$PIDMR_PROXY_RESTART_SCRIPT"
+  needs:
+    - job: test
+      artifacts: true
 
 sast:
   stage: test
+
 include:
   - template: Security/SAST.gitlab-ci.yml
