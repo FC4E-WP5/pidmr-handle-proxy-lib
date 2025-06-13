@@ -75,14 +75,12 @@ public class PIDMRHDLProxy extends HDLProxy {
             }
             this.resourceResolutionService = new ResourceResolutionService(providers);
             this.redirectService = new RedirectService(config);
+
+            this.endpointResolver = new EndpointResolver(providers);
+
         } catch (IOException e) {
             super.logError(RotatingAccessLog.ERRLOG_LEVEL_NORMAL, "Failed to load configuration: " + e.getMessage());
             throw new ServletException("Failed to load configuration", e);
-        }
-        try {
-            this.endpointResolver = new EndpointResolver(config.getProvidersFilePath());
-        } catch (IOException e) {
-            throw new ServletException("Failed to load provider definitions", e);
         }
     }
 

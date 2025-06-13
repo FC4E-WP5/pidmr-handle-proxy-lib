@@ -4,20 +4,14 @@ import com.google.gson.*;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.List;
 
 public class EndpointResolver {
 
-    private final JsonArray providers;
+    private final List<JsonObject> providers;
 
-    public EndpointResolver(String providersFilePath) throws IOException {
-        this.providers = readProvidersFile(providersFilePath);
-    }
-
-    private JsonArray readProvidersFile(String path) throws IOException {
-        try (FileReader reader = new FileReader(path)) {
-            JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
-            return root.getAsJsonArray("content");
-        }
+    public EndpointResolver(List<JsonObject> providers) {
+        this.providers = providers;
     }
 
     public String resolve(String providerId, String subProviderId, String displayMode) {
