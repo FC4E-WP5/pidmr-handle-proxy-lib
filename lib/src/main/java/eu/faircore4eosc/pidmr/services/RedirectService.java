@@ -1,4 +1,4 @@
-package eu.faircore4eosc.pidmr;
+package eu.faircore4eosc.pidmr.services;
 
 import net.handle.hdllib.AbstractMessage;
 import net.handle.apps.servlet_proxy.HDLServletRequest;
@@ -6,6 +6,7 @@ import net.handle.apps.servlet_proxy.HDLServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+import eu.faircore4eosc.pidmr.ConfigLoader;
 import eu.faircore4eosc.pidmr.logging.AccessLogger;
 import eu.faircore4eosc.pidmr.logging.InfluxLogger;
 
