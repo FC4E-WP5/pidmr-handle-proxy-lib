@@ -25,6 +25,7 @@ import eu.faircore4eosc.pidmr.services.EndpointResolver;
 import eu.faircore4eosc.pidmr.services.PIDMRHandler;
 import eu.faircore4eosc.pidmr.services.ProviderFileService;
 import eu.faircore4eosc.pidmr.services.ProviderService;
+import eu.faircore4eosc.pidmr.services.RedirectService;
 import eu.faircore4eosc.pidmr.services.ResourceResolutionService;
 import eu.faircore4eosc.pidmr.utilities.ErrorHandler;
 import eu.faircore4eosc.pidmr.utilities.InputSanitizer;
