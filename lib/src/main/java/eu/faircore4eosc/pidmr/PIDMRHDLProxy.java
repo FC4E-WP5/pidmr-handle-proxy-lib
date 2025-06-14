@@ -188,6 +188,7 @@ public class PIDMRHDLProxy extends HDLProxy {
         }
         String resolvedEndpoint = endpointResolver.resolve(pidType, subProvider, display);
         if (resolvedEndpoint == null) {
+            ErrorHandler.notFound(resp,  String.format("%s endpoint not found.", display));
             return;
         }
         handleRedirect(pidType, subProvider, pid, display, hdl, resp, resolvedEndpoint);
@@ -268,7 +269,7 @@ public class PIDMRHDLProxy extends HDLProxy {
             pid = pid.split(":")[1];
         }
         switch (pidType) {
-            case "10.5281/zenodo":
+            case "zenodo":
                 return PidUtils.extractDocumentId(pid);
             case "RAiD":
                 return PidUtils.checkForCanonicalFormat(pid);
