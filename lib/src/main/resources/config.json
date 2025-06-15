@@ -3,12 +3,6 @@
   "influxdbConfigFile": "influxdb.config",
   "providersFilePath": "/hs/svr_1/providers/providers.json",
   "providersBackupFilePath": "/hs/svr_1/providers/providers_backup.json",
-  "mimTypes": {
-    "CN_BIBTEX_MIMTYPE": "application/x-bibtex/",
-    "CN_TURTLE_MIMTYPE": "text/turtle/",
-    "CN_RDF_MIMTYPE": "application/rdf+xml/",
-    "CN_CITATION_MIMTYPE": "application/vnd.citationstyles.csl+json/"
-  },
   "resolvingModes": {
     "RESOLVING_MODE_LANDINGPAGE": "landingpage",
     "RESOLVING_MODE_METADATA": "metadata",
@@ -16,12 +10,5 @@
   },
   "handleProviderHavingSubproviders": {
     "doi": "getDoiProvider"
-  },
-  "handlePIDResourceMode": {
-    "10.5281/zenodo": "handleZenodoResourceMode",
-    "datacite": "handleDataciteResourceMode",
-    "crossref": "handleCrossrefResourceMode",
-    "urn:nbn:de": "handleUrnDeChResourceMode",
-    "urn:nbn:ch": "handleUrnDeChResourceMode"
   }
 }
