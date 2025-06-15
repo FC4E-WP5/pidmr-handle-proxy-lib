@@ -22,7 +22,6 @@ import com.google.gson.JsonElement;
 
 import eu.faircore4eosc.pidmr.ConfigLoader;
 import eu.faircore4eosc.pidmr.services.EndpointResolver;
-import eu.faircore4eosc.pidmr.services.PIDMRHandler;
 import eu.faircore4eosc.pidmr.services.ProviderFileService;
 import eu.faircore4eosc.pidmr.services.ProviderService;
 import eu.faircore4eosc.pidmr.services.RedirectService;
@@ -48,7 +47,6 @@ public class PIDMRHDLProxy extends HDLProxy {
     private ConfigLoader.Config config;
     private static final ThreadLocal<HttpServletResponse> responseHolder = new ThreadLocal<>();
     private ProviderService providerService;
-    private PIDMRHandler pidmrHandler;
     private ResourceResolutionService resourceResolutionService;
     private RedirectService redirectService;
     private EndpointResolver endpointResolver;
@@ -68,8 +66,6 @@ public class PIDMRHDLProxy extends HDLProxy {
             JsonArray providersArray = json.getAsJsonArray("content");
             this.providerService = new ProviderService();
             this.providerService.loadProviders(providersArray);
-            this.pidmrHandler = new PIDMRHandler(providerService);
-
             List<JsonObject> providers = new ArrayList<>();
             for (JsonElement element : providersArray) {
                 providers.add(element.getAsJsonObject());
