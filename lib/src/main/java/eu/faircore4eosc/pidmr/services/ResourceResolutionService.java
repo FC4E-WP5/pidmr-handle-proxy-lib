@@ -36,7 +36,7 @@ public class ResourceResolutionService {
         if (links.isEmpty()) return null;
         if (links.size() == 1) return links.get(0);
         ResponseUtils.writeJsonResponse(resp, links);
-        return null;
+        return "multiple";
     }
 
     public boolean canHandle(String pidType, String subProvider) {
