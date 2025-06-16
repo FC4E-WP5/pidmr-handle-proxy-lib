@@ -256,8 +256,8 @@ public class PIDMRHDLProxy extends HDLProxy {
             redirectUrl = resourceResolutionService.handle(pidType, subProvider, redirectUrl, resp);
             if (redirectUrl == null)  {
                 ErrorHandler.notFound(resp, "No redirect url found.");
-                return;
             }
+            return;
         }
         redirectService.redirect(resp, redirectUrl, pid, pidType, display, hdl);
     }

@@ -6,7 +6,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 public class ProviderService {
-    private final Map<String, List<Pattern>> pidPatterns = new HashMap<>();
+    public final Map<String, List<Pattern>> pidPatterns = new HashMap<>();
 
     public void loadProviders(JsonArray providers) {
         for (JsonElement provider : providers) {

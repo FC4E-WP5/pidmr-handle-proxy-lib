@@ -77,7 +77,7 @@ public class ResourceResolutionServiceTest {
         ResourceResolutionService service = new ResourceResolutionService(providers, fetcher);
         String result = service.handle("doi", "CROSSREF", "https://api.crossref.org/works/10.1007/bf01034473", resp);
 
-        assertNull(result);
+        assertEquals("multiple", result);
     }
 
     private JsonObject createUrlObject(String url) {
